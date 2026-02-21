@@ -470,8 +470,72 @@ async function refresh() {
         renderCron(data.cron);
         renderConfig(data.config);
         renderMemory(data.memory);
+        renderDailyLogs(data.dailyLogs);
     }
     setTimeout(() => btn.classList.remove('spinning'), 800);
+}
+
+// ===== 渲染：每日活動紀錄 =====
+function renderDailyLogs(data) {
+    if (!data) return;
+    const timeline = document.getElementById('dailyTimeline');
+    timeline.innerHTML = '';
+    document.getElementById('dailyLogCount').textContent = `${data.length} 天`;
+
+    if (data.length === 0) {
+        timeline.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div>暫無每日紀錄</div>';
+        return;
+    }
+
+    data.forEach((log, idx) => {
+        const card = document.createElement('div');
+        card.className = `daily-card${idx === 0 ? ' expanded' : ''}`;
+
+        const dateLabel = formatDateLabel(log.date);
+        const sectionCount = log.sections.reduce((sum, s) => sum + s.items.length, 0);
+
+        card.innerHTML = `
+      <div class="daily-card-header">
+        <div class="daily-date">
+          <span class="daily-date-badge">${escHtml(log.date)}</span>
+          <span class="daily-title">${escHtml(log.title)}${log.isArchive ? '<span class="daily-archive-tag">歸檔</span>' : ''}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:0.68rem;color:var(--text-muted);">${sectionCount} 筆紀錄 · ${dateLabel}</span>
+          <span class="daily-toggle">▼</span>
+        </div>
+      </div>
+      <div class="daily-card-body">
+        ${log.sections.map(sec => `
+          <div class="daily-section">
+            <div class="daily-section-title">${escHtml(sec.title)}</div>
+            ${sec.items.map(item => `<div class="daily-item">${formatMd(item)}</div>`).join('')}
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+        // 點擊展開/收合
+        card.querySelector('.daily-card-header').addEventListener('click', () => {
+            card.classList.toggle('expanded');
+        });
+
+        timeline.appendChild(card);
+    });
+}
+
+function formatDateLabel(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diffDays = Math.round((today - target) / 86400000);
+
+    if (diffDays === 0) return '今天';
+    if (diffDays === 1) return '昨天';
+    if (diffDays === 2) return '前天';
+    if (diffDays < 7) return `${diffDays} 天前`;
+    return d.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
 }
 
 // ===== 初始化 =====

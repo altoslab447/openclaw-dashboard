@@ -347,6 +347,66 @@ function parseSingleLogLine(line) {
   return { timestamp: null, tag: null, message: line, raw: line };
 }
 
+// 解析每日記憶日誌
+function parseDailyLogs(maxDays = 7) {
+  const memoryDir = path.join(WORKSPACE_DIR, 'memory');
+  const logs = [];
+
+  function scanDir(dir) {
+    try {
+      const entries = fs.readdirSync(dir);
+      for (const entry of entries) {
+        if (!entry.endsWith('.md')) continue;
+        // 匹配 YYYY-MM-DD 格式的檔名
+        const dateMatch = entry.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (!dateMatch) continue;
+
+        const filePath = path.join(dir, entry);
+        const raw = readFileSync(filePath);
+        if (!raw || raw.trim().length === 0) continue;
+
+        const stat = fs.statSync(filePath);
+        const sections = [];
+        let currentSection = null;
+
+        for (const line of raw.split('\n')) {
+          if (line.startsWith('## ')) {
+            if (currentSection) sections.push(currentSection);
+            currentSection = { title: line.replace('## ', '').trim(), items: [] };
+          } else if (currentSection && line.trim().startsWith('- ')) {
+            currentSection.items.push(line.trim().replace(/^- /, ''));
+          }
+        }
+        if (currentSection) sections.push(currentSection);
+
+        // 提取標題
+        const titleMatch = raw.match(/^# (.+)/m);
+        const title = titleMatch ? titleMatch[1].trim() : entry.replace('.md', '');
+
+        logs.push({
+          date: dateMatch[1],
+          filename: entry,
+          title,
+          sections,
+          modifiedAt: stat.mtime.toISOString(),
+          isArchive: dir.includes('archive')
+        });
+      }
+    } catch { }
+  }
+
+  scanDir(memoryDir);
+  // 也掃描 archive 子目錄
+  const archiveDir = path.join(memoryDir, 'archive');
+  if (fs.existsSync(archiveDir)) {
+    scanDir(archiveDir);
+  }
+
+  // 按日期排序（最新的在前面），取最近 N 天
+  logs.sort((a, b) => b.date.localeCompare(a.date));
+  return logs.slice(0, maxDays);
+}
+
 function getOpenClawDir() {
   return OPENCLAW_DIR;
 }
@@ -358,6 +418,6 @@ function getWorkspaceDirPath() {
 module.exports = {
   parseKanban, parseSessionState, parseIdentity, parseMemory,
   parseSkills, parseCronJobs, parseConfig, parseStability,
-  readRecentLogs, parseSingleLogLine,
+  readRecentLogs, parseSingleLogLine, parseDailyLogs,
   getOpenClawDir, getWorkspaceDirPath
 };

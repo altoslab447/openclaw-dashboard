@@ -1053,6 +1053,131 @@ body::before {
   opacity: 0.5;
 }
 
+/* ===== 每日活動紀錄 ===== */
+.daily-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.daily-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.daily-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.daily-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+  background: rgba(255, 255, 255, 0.01);
+  transition: var(--transition);
+}
+
+.daily-card-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.daily-date {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.daily-date-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.daily-card:first-child .daily-date-badge {
+  background: var(--lobster-glow);
+  color: var(--lobster);
+}
+
+.daily-card:nth-child(2) .daily-date-badge {
+  background: var(--yellow-dim);
+  color: var(--yellow);
+}
+
+.daily-card:nth-child(n+3) .daily-date-badge {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+.daily-title {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.daily-toggle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.3s;
+}
+
+.daily-card.expanded .daily-toggle {
+  transform: rotate(180deg);
+}
+
+.daily-card-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+  padding: 0 18px;
+}
+
+.daily-card.expanded .daily-card-body {
+  max-height: 2000px;
+  padding: 0 18px 16px;
+}
+
+.daily-section {
+  margin-top: 12px;
+}
+
+.daily-section-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-accent);
+  margin-bottom: 6px;
+}
+
+.daily-item {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  padding: 4px 0 4px 14px;
+  border-left: 2px solid var(--border-glass);
+  line-height: 1.55;
+}
+
+.daily-item:hover {
+  border-left-color: var(--lobster);
+  color: var(--text-primary);
+}
+
+.daily-archive-tag {
+  font-size: 0.6rem;
+  padding: 2px 6px;
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--text-muted);
+  border-radius: 4px;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
   .header {

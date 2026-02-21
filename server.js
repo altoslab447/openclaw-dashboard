@@ -8,7 +8,7 @@ const chokidar = require('chokidar');
 const {
     parseKanban, parseSessionState, parseIdentity, parseMemory,
     parseSkills, parseCronJobs, parseConfig, parseStability,
-    readRecentLogs, parseSingleLogLine,
+    readRecentLogs, parseSingleLogLine, parseDailyLogs,
     getOpenClawDir, getWorkspaceDirPath
 } = require('./parsers');
 
@@ -48,6 +48,11 @@ app.get('/api/logs', (req, res) => {
     res.json(readRecentLogs(count));
 });
 
+app.get('/api/daily-logs', (req, res) => {
+    const days = Math.min(parseInt(req.query.days) || 7, 30);
+    res.json(parseDailyLogs(days));
+});
+
 app.get('/api/all', (req, res) => {
     res.json({
         agent: { identity: parseIdentity(), session: parseSessionState() },
@@ -57,6 +62,7 @@ app.get('/api/all', (req, res) => {
         memory: parseMemory(),
         config: parseConfig(),
         stability: parseStability(),
+        dailyLogs: parseDailyLogs(7),
         timestamp: new Date().toISOString()
     });
 });
@@ -144,7 +150,8 @@ if (fs.existsSync(WORKSPACE_DIR)) {
         path.join(WORKSPACE_DIR, 'SOVEREIGN_PLAN.md'),
         path.join(WORKSPACE_DIR, 'STABILITY.md'),
         path.join(OPENCLAW_DIR, 'cron', 'jobs.json'),
-        path.join(OPENCLAW_DIR, 'openclaw.json')
+        path.join(OPENCLAW_DIR, 'openclaw.json'),
+        path.join(WORKSPACE_DIR, 'memory')
     ].filter(p => fs.existsSync(p));
 
     if (watchPatterns.length > 0) {
