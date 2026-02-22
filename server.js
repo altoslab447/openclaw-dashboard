@@ -9,6 +9,7 @@ const {
     parseKanban, parseSessionState, parseIdentity, parseMemory,
     parseSkills, parseCronJobs, parseConfig, parseStability,
     readRecentLogs, parseSingleLogLine, parseDailyLogs,
+    parseRecentSessions,
     getOpenClawDir, getWorkspaceDirPath
 } = require('./parsers');
 
@@ -53,6 +54,11 @@ app.get('/api/daily-logs', (req, res) => {
     res.json(parseDailyLogs(days));
 });
 
+app.get('/api/sessions', (req, res) => {
+    const count = Math.min(parseInt(req.query.count) || 20, 50);
+    res.json(parseRecentSessions(count));
+});
+
 app.get('/api/all', (req, res) => {
     res.json({
         agent: { identity: parseIdentity(), session: parseSessionState() },
@@ -63,6 +69,7 @@ app.get('/api/all', (req, res) => {
         config: parseConfig(),
         stability: parseStability(),
         dailyLogs: parseDailyLogs(7),
+        sessions: parseRecentSessions(15),
         timestamp: new Date().toISOString()
     });
 });

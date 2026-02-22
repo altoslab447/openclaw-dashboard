@@ -187,19 +187,8 @@ function renderAgent(data) {
     }
 }
 
-// ===== 渲染：任務看板 =====
-function renderKanban(data) {
-    if (!data) return;
-    renderColumn('activeItems', data.active);
-    renderColumn('backlogItems', data.backlog);
-    renderColumn('completedItems', data.completed);
-    document.getElementById('activeCount').textContent = data.active.length;
-    document.getElementById('backlogCount').textContent = data.backlog.length;
-    document.getElementById('completedCount').textContent = data.completed.length;
-    if (data.lastUpdated) {
-        document.getElementById('kanbanUpdated').textContent = `更新: ${data.lastUpdated}`;
-    }
-}
+
+
 
 function renderColumn(containerId, items) {
     const container = document.getElementById(containerId);
@@ -465,6 +454,7 @@ async function refresh() {
     const data = await fetchAll();
     if (data) {
         renderAgent(data.agent);
+        renderSessions(data.sessions);
         renderKanban(data.kanban);
         renderSkills(data.skills);
         renderCron(data.cron);
@@ -475,7 +465,78 @@ async function refresh() {
     setTimeout(() => btn.classList.remove('spinning'), 800);
 }
 
-// ===== 渲染：每日活動紀錄 =====
+// ===== 渲染：會話活動 =====
+function renderSessions(data) {
+    if (!data) return;
+    const list = document.getElementById('sessionsList');
+    list.innerHTML = '';
+    document.getElementById('sessionCount').textContent = data.length;
+
+    if (data.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📡</div>暫無會話紀錄</div>';
+        return;
+    }
+
+    const now = Date.now();
+    const typeLabels = { dm: '私人對話', group: '群組對話', cron: '排程任務', subagent: '子代理', topic: '話題', other: '其他' };
+
+    data.forEach(session => {
+        const card = document.createElement('div');
+        const ageMs = now - session.updatedAtMs;
+        const isActive = ageMs < 600000;     // 10 分鐘內
+        const isRecent = ageMs < 3600000;    // 1 小時內
+        const statusClass = isActive ? 'session-active' : isRecent ? 'session-recent' : 'session-stale';
+        card.className = `session-card ${statusClass}`;
+
+        // 取得展示名稱
+        let displayName = session.origin || typeLabels[session.type] || session.key;
+        if (session.type === 'cron') {
+            // cron 顯示 job ID 的前 8 碼
+            const cronMatch = session.key.match(/cron:([a-f0-9-]+)/);
+            displayName = cronMatch ? `Cron ${cronMatch[1].substring(0, 8)}` : '排程任務';
+        }
+        if (session.type === 'dm' && !session.origin) displayName = '主要對話';
+
+        // Token 顯示
+        const tokenStr = session.totalTokens > 1000 ? `${(session.totalTokens / 1000).toFixed(0)}K` : `${session.totalTokens}`;
+
+        card.innerHTML = `
+      <div class="session-icon ${escHtml(session.type)}">${session.icon}</div>
+      <div class="session-info">
+        <h4>${escHtml(displayName)}${isActive ? ' <span style="color:var(--green);font-size:0.7rem;">● 活躍中</span>' : ''}</h4>
+        <div class="session-key">${escHtml(session.type === 'dm' ? 'agent:main:main' : session.key.length > 50 ? session.key.substring(0, 50) + '...' : session.key)}</div>
+      </div>
+      <div class="session-meta">
+        <div class="session-time">${formatTime(session.updatedAt)}</div>
+        <div class="session-badges">
+          ${session.channel ? `<span class="session-badge channel">${escHtml(session.channel)}</span>` : ''}
+          ${session.model ? `<span class="session-badge model">${escHtml(session.model)}</span>` : ''}
+          ${session.totalTokens > 0 ? `<span class="session-badge tokens">${tokenStr} tokens</span>` : ''}
+        </div>
+      </div>
+    `;
+        list.appendChild(card);
+    });
+}
+
+// ===== 渲染：任務看板 (條件式) =====
+function renderKanban(data) {
+    const panel = document.getElementById('kanbanPanel');
+    if (!data || (!data.active?.length && !data.backlog?.length && !data.completed?.length)) {
+        panel.style.display = 'none';
+        return;
+    }
+    panel.style.display = '';
+    renderColumn('activeItems', data.active);
+    renderColumn('backlogItems', data.backlog);
+    renderColumn('completedItems', data.completed);
+    document.getElementById('activeCount').textContent = data.active.length;
+    document.getElementById('backlogCount').textContent = data.backlog.length;
+    document.getElementById('completedCount').textContent = data.completed.length;
+    if (data.lastUpdated) {
+        document.getElementById('kanbanUpdated').textContent = `更新: ${data.lastUpdated}`;
+    }
+}
 function renderDailyLogs(data) {
     if (!data) return;
     const timeline = document.getElementById('dailyTimeline');

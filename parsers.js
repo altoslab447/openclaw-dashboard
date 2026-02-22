@@ -407,6 +407,58 @@ function parseDailyLogs(maxDays = 7) {
   return logs.slice(0, maxDays);
 }
 
+// 解析近期會話活動 (sessions.json)
+function parseRecentSessions(maxSessions = 20) {
+  const sessionsFile = path.join(OPENCLAW_DIR, 'agents', 'main', 'sessions', 'sessions.json');
+  try {
+    const raw = fs.readFileSync(sessionsFile, 'utf-8');
+    const data = JSON.parse(raw);
+
+    const sessions = [];
+    for (const [key, meta] of Object.entries(data)) {
+      const updatedAt = meta.updatedAt;
+      if (!updatedAt || updatedAt === 0) continue;
+
+      // 判斷 session 類型
+      let sessionType = 'unknown';
+      let icon = '💬';
+      if (key.includes(':cron:')) { sessionType = 'cron'; icon = '⏰'; }
+      else if (key.includes(':subagent:')) { sessionType = 'subagent'; icon = '🤖'; }
+      else if (key.includes(':group:')) { sessionType = 'group'; icon = '👥'; }
+      else if (key === 'agent:main:main') { sessionType = 'dm'; icon = '💬'; }
+      else if (key.includes(':topic:')) { sessionType = 'topic'; icon = '📌'; }
+      else { sessionType = 'other'; icon = '📡'; }
+
+      // 提取來源標籤
+      const origin = meta.origin?.label || meta.origin?.surface || '';
+      const channel = meta.channel || meta.lastChannel || '';
+
+      sessions.push({
+        key,
+        sessionId: meta.sessionId || '',
+        type: sessionType,
+        icon,
+        channel,
+        model: meta.model || '',
+        modelProvider: meta.modelProvider || '',
+        totalTokens: meta.totalTokens || 0,
+        inputTokens: meta.inputTokens || 0,
+        outputTokens: meta.outputTokens || 0,
+        chatType: meta.chatType || '',
+        origin,
+        updatedAt: new Date(updatedAt).toISOString(),
+        updatedAtMs: updatedAt
+      });
+    }
+
+    // 按最後活動時間排序
+    sessions.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
+    return sessions.slice(0, maxSessions);
+  } catch {
+    return [];
+  }
+}
+
 function getOpenClawDir() {
   return OPENCLAW_DIR;
 }
@@ -419,5 +471,7 @@ module.exports = {
   parseKanban, parseSessionState, parseIdentity, parseMemory,
   parseSkills, parseCronJobs, parseConfig, parseStability,
   readRecentLogs, parseSingleLogLine, parseDailyLogs,
+  parseRecentSessions,
   getOpenClawDir, getWorkspaceDirPath
 };
+
