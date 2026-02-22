@@ -15,81 +15,151 @@
 </head>
 
 <body>
-  <!-- Header -->
-  <header class="header">
-    <div class="header-left">
-      <img src="lobster.png" alt="🦞" class="header-logo">
-      <h1 class="header-title">OpenClaw</h1>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="lobster.png" alt="🦞" class="brand-logo">
+      <span class="brand-name">OpenClaw</span>
     </div>
-    <div class="header-right">
+
+    <nav class="sidebar-nav">
+      <a href="#overview" class="nav-item active" data-section="overview">
+        <span class="nav-icon">⬡</span>
+        <span class="nav-label">總覽</span>
+      </a>
+      <a href="#tokens" class="nav-item" data-section="tokens">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Token 消耗</span>
+      </a>
+      <a href="#activity" class="nav-item" data-section="activity">
+        <span class="nav-icon">🧠</span>
+        <span class="nav-label">最近動態</span>
+      </a>
+      <a href="#logs" class="nav-item" data-section="logs">
+        <span class="nav-icon">📜</span>
+        <span class="nav-label">即時日誌</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
       <div class="ws-indicator" id="wsIndicator">
         <span class="pulse-dot"></span>
         <span class="ws-text">連線中...</span>
       </div>
       <div class="clock" id="clock"></div>
     </div>
-  </header>
+  </aside>
 
-  <main class="dashboard">
+  <!-- Main Panel -->
+  <div class="main-panel">
 
-    <!-- 1️⃣ 龍蝦狀態 -->
-    <section class="section hero-section" id="heroSection">
-      <div class="lobster-stage">
-        <div class="ring-glow" id="ringGlow"></div>
-        <img src="lobster.png" alt="Mr. 蝦蝦" class="lobster-sprite" id="lobsterSprite">
+    <!-- Topbar -->
+    <header class="topbar">
+      <h1 class="page-title">任務指揮中心</h1>
+      <div class="topbar-right">
+        <span class="status-badge" id="agentStatusBadge">載入中...</span>
       </div>
-      <div class="hero-text">
-        <div class="hero-status" id="heroStatus">載入中...</div>
-        <div class="hero-subtitle" id="heroSubtitle"></div>
-      </div>
-      <div class="hero-action" id="heroAction"></div>
-    </section>
+    </header>
 
-    <!-- 2️⃣ 龍蝦自我介紹 -->
-    <section class="section intro-section" id="introSection">
-      <div class="section-header">
-        <h2>🦞 認識 Mr. 蝦蝦</h2>
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card" id="statStatus">
+        <div class="stat-icon">🤖</div>
+        <div class="stat-body">
+          <div class="stat-label">Agent 狀態</div>
+          <div class="stat-value" id="statStatusVal">—</div>
+        </div>
       </div>
-      <div class="intro-content" id="introContent">
-        <div class="empty-state">載入中...</div>
+      <div class="stat-card" id="statTokens">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-body">
+          <div class="stat-label">Token 消耗</div>
+          <div class="stat-value" id="statTokensVal">—</div>
+        </div>
       </div>
-    </section>
+      <div class="stat-card" id="statSessions">
+        <div class="stat-icon">💬</div>
+        <div class="stat-body">
+          <div class="stat-label">會話數量</div>
+          <div class="stat-value" id="statSessionsVal">—</div>
+        </div>
+      </div>
+      <div class="stat-card" id="statLastActive">
+        <div class="stat-icon">🕐</div>
+        <div class="stat-body">
+          <div class="stat-label">最後活動</div>
+          <div class="stat-value" id="statLastActiveVal">—</div>
+        </div>
+      </div>
+    </div>
 
-    <!-- 3️⃣ Token 消耗 -->
-    <section class="section" id="tokenSection">
-      <div class="section-header">
-        <h2>📊 Token 消耗</h2>
-        <span class="section-badge" id="tokenTotal">—</span>
-      </div>
-      <div class="token-list" id="tokenList"></div>
-      <div class="token-trend-mini" id="tokenTrendMini"></div>
-    </section>
+    <!-- Dashboard Content -->
+    <main class="dashboard">
 
-    <!-- 4️⃣ 學習進展 -->
-    <section class="section" id="learningSection">
-      <div class="section-header">
-        <h2>🧠 最近動態</h2>
-        <span class="section-badge" id="learningCount">—</span>
-      </div>
-      <div class="learning-timeline" id="learningTimeline"></div>
-    </section>
+      <!-- Row 1: Hero + Intro side by side -->
+      <div class="row-dual">
 
-    <!-- 5️⃣ 即時日誌（可收起） -->
-    <section class="section log-section collapsed" id="logSection">
-      <div class="section-header clickable" id="logToggle">
-        <h2>📜 即時日誌</h2>
-        <span class="expand-icon" id="expandIcon">▼</span>
-      </div>
-      <div class="log-container" id="logContainer">
-        <div class="log-empty">等待日誌資料...</div>
-      </div>
-    </section>
+        <!-- 1️⃣ 龍蝦狀態 -->
+        <section class="section hero-section" id="heroSection">
+          <div class="lobster-stage">
+            <div class="ring-glow" id="ringGlow"></div>
+            <img src="lobster.png" alt="Mr. 蝦蝦" class="lobster-sprite" id="lobsterSprite">
+          </div>
+          <div class="hero-text">
+            <div class="hero-status" id="heroStatus">載入中...</div>
+            <div class="hero-subtitle" id="heroSubtitle"></div>
+          </div>
+          <div class="hero-action" id="heroAction"></div>
+        </section>
 
-  </main>
+        <!-- 2️⃣ 龍蝦自我介紹 -->
+        <section class="section intro-section" id="introSection">
+          <div class="section-header">
+            <h2>🦞 Mr. 蝦蝦</h2>
+          </div>
+          <div class="intro-content" id="introContent">
+            <div class="empty-state">載入中...</div>
+          </div>
+        </section>
 
-  <footer class="footer">
-    <p>OpenClaw 任務指揮中心 v4.0 🦞</p>
-  </footer>
+      </div>
+
+      <!-- 3️⃣ Token 消耗 -->
+      <section class="section" id="tokenSection">
+        <div class="section-header">
+          <h2>📊 Token 消耗</h2>
+          <span class="section-badge" id="tokenTotal">—</span>
+        </div>
+        <div class="token-list" id="tokenList"></div>
+        <div class="token-trend-mini" id="tokenTrendMini"></div>
+      </section>
+
+      <!-- 4️⃣ 學習進展 -->
+      <section class="section" id="learningSection">
+        <div class="section-header">
+          <h2>🧠 最近動態</h2>
+          <span class="section-badge" id="learningCount">—</span>
+        </div>
+        <div class="learning-timeline" id="learningTimeline"></div>
+      </section>
+
+      <!-- 5️⃣ 即時日誌（可收起） -->
+      <section class="section log-section collapsed" id="logSection">
+        <div class="section-header clickable" id="logToggle">
+          <h2>📜 即時日誌</h2>
+          <span class="expand-icon" id="expandIcon">▼</span>
+        </div>
+        <div class="log-container" id="logContainer">
+          <div class="log-empty">等待日誌資料...</div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <p>OpenClaw 任務指揮中心 v4.0 🦞</p>
+    </footer>
+  </div>
 
   <script src="app.js"></script>
 </body>

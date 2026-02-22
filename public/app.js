@@ -1,4 +1,4 @@
-// ===== OpenClaw 任務指揮中心 v4 =====
+// ===== OpenClaw 任務指揮中心 v5 =====
 
 const API_BASE = '';
 let ws = null;
@@ -14,6 +14,29 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
+
+// ===== 側邊欄導航 =====
+const sectionAnchors = {
+    overview:  'heroSection',
+    tokens:    'tokenSection',
+    activity:  'learningSection',
+    logs:      'logSection',
+};
+
+document.querySelectorAll('.nav-item').forEach(link => {
+    link.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        const section = link.dataset.section;
+        const target = document.getElementById(sectionAnchors[section]);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // 展開日誌區塊（如果點選 logs 時是收起狀態）
+        if (section === 'logs') {
+            document.getElementById('logSection').classList.remove('collapsed');
+        }
+    });
+});
 
 // ===== 工具 =====
 function esc(str) {
@@ -104,10 +127,37 @@ function fmtLog(raw) {
 async function refresh() {
     const data = await fetchAll();
     if (!data) return;
+    renderStats(data.agentStatus, data.sessions);
     renderHero(data.agentStatus);
     renderIntro(data.agent);
     renderTokens(data.sessions, data.tokenTrend);
     renderLearning(data.dailyLogs, data.summaries);
+}
+
+// ===== Stats Cards =====
+function renderStats(s, sessions) {
+    // Agent 狀態
+    const statusLabels = { working: '🟢 工作中', standby: '🟡 待命中', sleeping: '💤 休眠' };
+    const statusVal = statusLabels[s?.status] || '—';
+    document.getElementById('statStatusVal').textContent = statusVal;
+
+    // 頂部 badge
+    const badge = document.getElementById('agentStatusBadge');
+    badge.textContent = statusVal;
+    badge.className = 'status-badge';
+    if (s?.status === 'standby') badge.classList.add('standby');
+    else if (s?.status === 'sleeping') badge.classList.add('sleeping');
+
+    // Token 總計
+    const total = sessions ? sessions.reduce((sum, s) => sum + (s.totalTokens || 0), 0) : 0;
+    document.getElementById('statTokensVal').textContent = fmtTokens(total);
+
+    // 會話數
+    const sessionCount = sessions ? sessions.filter(s => s.totalTokens > 0).length : 0;
+    document.getElementById('statSessionsVal').textContent = `${sessionCount} 個`;
+
+    // 最後活動
+    document.getElementById('statLastActiveVal').textContent = s?.lastActivityAt ? timeAgo(s.lastActivityAt) : '—';
 }
 
 // ===== 1. Hero — 龍蝦狀態 =====
@@ -140,7 +190,6 @@ function renderIntro(agent) {
     const vibe = id.vibe || '';
     const coreSkill = id.coreSkill || '';
 
-    // coreTruths 特質標籤
     const truths = id.coreTruths || [];
     const traitClasses = { '執行至上': 'exec', '節省為本': 'save', '技術專業': 'tech', '幽默感': 'humor' };
 
@@ -195,7 +244,6 @@ function renderTokens(sessions, trend) {
         list.appendChild(row);
     });
 
-    // 迷你趨勢
     if (trend?.length > 0) {
         const mini = document.getElementById('tokenTrendMini');
         mini.innerHTML = '';
@@ -217,7 +265,6 @@ function renderLearning(logs, summaries) {
 
     let count = 0;
 
-    // 先顯示最近對話（來自 JSONL）
     if (summaries && summaries.length > 0) {
         summaries.forEach(session => {
             if (!session.messages || session.messages.length === 0) return;
@@ -239,7 +286,6 @@ function renderLearning(logs, summaries) {
         });
     }
 
-    // 再顯示每日記憶日誌
     if (logs && logs.length > 0) {
         logs.forEach(log => {
             const day = document.createElement('div');
