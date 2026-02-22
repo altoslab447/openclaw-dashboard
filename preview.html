@@ -3,208 +3,556 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpenClaw 任務指揮中心 — Preview</title>
+<title>OpenClaw 任務指揮中心</title>
 <style>
-/* ===== Google Fonts fallback ===== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
+/* ===== Design Tokens ===== */
 :root {
-  --sidebar-width: 220px;
-  --bg-primary:    #0a0d14;
-  --bg-secondary:  #111520;
-  --bg-card:       #151a28;
-  --bg-glass:      rgba(255,255,255,.03);
-  --bg-card-hover: rgba(255,255,255,.06);
-  --border-glass:  rgba(255,255,255,.07);
-  --border-active: rgba(255,107,74,.4);
-  --text-primary:  #e8eaf0;
-  --text-secondary:#a0a8c0;
-  --text-muted:    #5a6380;
-  --text-accent:   #ff6b4a;
-  --lobster:       #ff4444;
-  --lobster-glow:  rgba(255,68,68,.4);
-  --green:         #22c55e;
-  --green-dim:     rgba(34,197,94,.12);
-  --green-glow:    rgba(34,197,94,.4);
-  --yellow:        #f59e0b;
-  --yellow-dim:    rgba(245,158,11,.12);
-  --yellow-glow:   rgba(245,158,11,.3);
-  --blue:          #3b82f6;
-  --blue-dim:      rgba(59,130,246,.12);
-  --purple:        #a78bfa;
-  --radius:        14px;
-  --radius-sm:     8px;
-  --font-main:     'Inter', -apple-system, sans-serif;
-  --font-mono:     'JetBrains Mono', monospace;
-  --transition:    all 0.22s ease;
+  /* Colours */
+  --bg:         #0a0d14;
+  --bg-2:       #111520;
+  --bg-card:    #151a28;
+  --border:     rgba(255,255,255,.08);
+  --txt:        #e8eaf0;
+  --txt-2:      #a0a8c0;
+  --txt-3:      #5a6380;
+  --accent:     #ff6b4a;
+  --red:        #ff4444;
+  --red-glow:   rgba(255,68,68,.35);
+  --green:      #22c55e;
+  --green-dim:  rgba(34,197,94,.12);
+  --green-glow: rgba(34,197,94,.4);
+  --yellow:     #f59e0b;
+  --yellow-dim: rgba(245,158,11,.12);
+  --blue:       #3b82f6;
+  --purple:     #a78bfa;
+
+  /* Typography — nothing below 12px */
+  --fs-hero:   28px;   /* hero 大標題 */
+  --fs-title:  20px;   /* section 標題 */
+  --fs-sub:    16px;   /* 標準內文 */
+  --fs-small:  14px;   /* 次要說明文字 */
+  --fs-meta:   12px;   /* 最小字：時間戳、badge */
+
+  --fw-bold:   700;
+  --fw-semi:   600;
+  --fw-med:    500;
+
+  --radius:    16px;
+  --radius-sm: 10px;
+  --mono:      'JetBrains Mono', monospace;
+  --sans:      'Inter', -apple-system, sans-serif;
+  --ease:      all .22s ease;
 }
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-primary);line-height:1.6;min-height:100vh;display:flex}
 
-/* ===== Sidebar ===== */
-.sidebar{width:var(--sidebar-width);min-height:100vh;background:var(--bg-secondary);border-right:1px solid var(--border-glass);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh}
-.sidebar-brand{display:flex;align-items:center;gap:10px;padding:20px 16px 16px;border-bottom:1px solid var(--border-glass)}
-.brand-logo{width:28px;height:28px;image-rendering:pixelated;font-size:22px;line-height:1}
-.brand-name{font-size:1rem;font-weight:700;letter-spacing:-.02em}
-.sidebar-nav{display:flex;flex-direction:column;gap:2px;padding:14px 10px;flex:1}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);font-size:.8rem;font-weight:500;color:var(--text-muted);text-decoration:none;transition:var(--transition);cursor:pointer;border:1px solid transparent}
-.nav-item:hover{background:var(--bg-glass);color:var(--text-secondary)}
-.nav-item.active{background:rgba(255,107,74,.1);color:var(--text-accent);border-color:var(--border-active)}
-.nav-icon{font-size:.9rem;width:18px;text-align:center}
-.sidebar-footer{padding:14px 16px;border-top:1px solid var(--border-glass);display:flex;flex-direction:column;gap:8px}
-.clock{font-family:var(--font-mono);font-size:.68rem;color:var(--text-muted)}
-.ws-indicator{display:flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;font-size:.63rem;font-weight:600;background:var(--green-dim);color:var(--green);align-self:flex-start}
-.pulse-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* ===== Reset ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* ===== Main Panel ===== */
-.main-panel{flex:1;display:flex;flex-direction:column;min-width:0;overflow-x:hidden}
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid var(--border-glass);background:var(--bg-secondary);position:sticky;top:0;z-index:10}
-.page-title{font-size:.95rem;font-weight:700;letter-spacing:-.01em}
-.status-badge{font-size:.65rem;font-weight:700;padding:4px 12px;border-radius:20px;background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,.25);font-family:var(--font-mono)}
+body {
+  font-family: var(--sans);
+  font-size: var(--fs-sub);
+  background: var(--bg);
+  color: var(--txt);
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+/* ===== Sticky Header ===== */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-emoji { font-size: 22px; }
+
+.brand-name {
+  font-size: var(--fs-title);
+  font-weight: var(--fw-bold);
+  letter-spacing: -.02em;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.ws-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semi);
+  background: var(--green-dim);
+  color: var(--green);
+  font-family: var(--mono);
+}
+
+.pulse-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.clock {
+  font-family: var(--mono);
+  font-size: var(--fs-meta);
+  color: var(--txt-3);
+}
+
+/* ===== Page Shell ===== */
+.page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 40px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
 
 /* ===== Stats Row ===== */
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px 24px 6px}
-.stat-card{background:var(--bg-card);border:1px solid var(--border-glass);border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;transition:var(--transition)}
-.stat-card:hover{border-color:rgba(255,255,255,.12);background:var(--bg-card-hover)}
-.stat-icon{font-size:1.4rem;flex-shrink:0}
-.stat-body{flex:1;min-width:0}
-.stat-label{font-size:.65rem;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
-.stat-value{font-size:1.05rem;font-weight:700;color:var(--text-primary);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
 
-/* ===== Dashboard ===== */
-.dashboard{padding:16px 24px 24px;display:flex;flex-direction:column;gap:16px;flex:1}
-.row-dual{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.section{background:var(--bg-card);border:1px solid var(--border-glass);border-radius:var(--radius);padding:20px}
-.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border-glass)}
-.section-header h2{font-size:.82rem;font-weight:700}
-.section-badge{font-size:.63rem;font-family:var(--font-mono);padding:2px 8px;border-radius:10px;background:var(--bg-glass);color:var(--text-muted);border:1px solid var(--border-glass)}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: var(--ease);
+}
+
+.stat-card:hover {
+  border-color: rgba(255,255,255,.15);
+  background: rgba(255,255,255,.04);
+}
+
+.stat-icon { font-size: 28px; flex-shrink: 0; }
+
+.stat-body { flex: 1; min-width: 0; }
+
+.stat-label {
+  font-size: var(--fs-small);
+  color: var(--txt-3);
+  font-weight: var(--fw-med);
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: var(--fs-title);
+  font-weight: var(--fw-bold);
+  color: var(--txt);
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== Section Card ===== */
+.section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-title {
+  font-size: var(--fs-title);
+  font-weight: var(--fw-bold);
+}
+
+.section-badge {
+  font-size: var(--fs-meta);
+  font-family: var(--mono);
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.04);
+  color: var(--txt-3);
+  border: 1px solid var(--border);
+}
+
+/* ===== Hero + Intro Row ===== */
+.row-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
 
 /* Hero */
-.hero-section{display:flex;flex-direction:column;align-items:center;padding:28px 20px 24px;gap:12px;background:linear-gradient(160deg,var(--bg-secondary) 0%,var(--bg-card) 100%)}
-.lobster-stage{position:relative;width:90px;height:90px;display:flex;align-items:center;justify-content:center}
-.ring-glow{position:absolute;inset:-8px;border-radius:50%;border:2px solid var(--green);opacity:1;box-shadow:0 0 24px var(--green-glow),0 0 50px rgba(34,197,94,.12);animation:breathe 2s ease-in-out infinite}
-.lobster-sprite{width:64px;height:64px;image-rendering:pixelated;z-index:1;font-size:52px;line-height:1;animation:bob 1.2s ease-in-out infinite}
-@keyframes breathe{0%,100%{transform:scale(1);box-shadow:0 0 20px var(--green-glow)}50%{transform:scale(1.06);box-shadow:0 0 36px var(--green-glow),0 0 70px rgba(34,197,94,.18)}}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-.hero-text{text-align:center}
-.hero-status{font-size:1rem;font-weight:700}
-.hero-subtitle{font-size:.7rem;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px}
-.hero-action{font-size:.72rem;color:var(--text-secondary);padding:7px 14px;border-radius:var(--radius-sm);background:var(--bg-glass);border:1px solid var(--border-glass);text-align:center;line-height:1.5;width:100%}
+.hero-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 36px 28px 28px;
+  background: linear-gradient(155deg, var(--bg-2) 0%, var(--bg-card) 100%);
+}
+
+.lobster-stage {
+  position: relative;
+  width: 100px; height: 100px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.ring-glow {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 2px solid var(--green);
+  box-shadow: 0 0 24px var(--green-glow), 0 0 60px rgba(34,197,94,.12);
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.lobster-emoji {
+  font-size: 62px;
+  line-height: 1;
+  z-index: 1;
+  animation: bob 1.2s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,100% { transform: scale(1);    box-shadow: 0 0 20px var(--green-glow); }
+  50%      { transform: scale(1.07); box-shadow: 0 0 40px var(--green-glow), 0 0 80px rgba(34,197,94,.18); }
+}
+
+@keyframes bob {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+.hero-status {
+  font-size: var(--fs-hero);
+  font-weight: var(--fw-bold);
+  text-align: center;
+}
+
+.hero-since {
+  font-size: var(--fs-small);
+  color: var(--txt-3);
+  font-family: var(--mono);
+  text-align: center;
+}
+
+.hero-action {
+  font-size: var(--fs-sub);
+  color: var(--txt-2);
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border);
+  text-align: center;
+  line-height: 1.6;
+  width: 100%;
+}
 
 /* Intro */
-.intro-content{display:flex;flex-direction:column;gap:10px}
-.intro-name{font-size:.95rem;font-weight:700}
-.intro-role{font-size:.76rem;color:var(--text-accent);font-weight:600}
-.intro-bio{font-size:.75rem;color:var(--text-secondary);font-style:italic;line-height:1.6}
-.intro-traits{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.intro-trait{font-size:.65rem;padding:3px 9px;border-radius:12px;background:var(--bg-glass);border:1px solid var(--border-glass);color:var(--text-secondary)}
-.intro-trait.exec{border-color:rgba(255,68,68,.2);color:var(--lobster)}
-.intro-trait.save{border-color:rgba(34,197,94,.2);color:var(--green)}
-.intro-trait.tech{border-color:rgba(59,130,246,.2);color:var(--blue)}
-.intro-trait.humor{border-color:rgba(245,158,11,.2);color:var(--yellow)}
+.intro-name {
+  font-size: var(--fs-title);
+  font-weight: var(--fw-bold);
+  margin-bottom: 4px;
+}
 
-/* Tokens */
-.token-list{display:flex;flex-direction:column;gap:10px}
-.token-row{display:flex;flex-direction:column;gap:3px}
-.token-row-header{display:flex;justify-content:space-between;align-items:center}
-.token-label{font-size:.74rem;font-weight:500}
-.token-value{font-size:.66rem;font-family:var(--font-mono);color:var(--text-muted)}
-.token-bar-bg{height:5px;border-radius:3px;background:rgba(255,255,255,.05);overflow:hidden}
-.token-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--lobster),#ff8a65);transition:width .8s ease}
-.token-trend-mini{display:flex;align-items:flex-end;gap:3px;height:36px;padding-top:10px;margin-top:14px;border-top:1px solid var(--border-glass)}
-.mini-bar{flex:1;min-height:2px;border-radius:2px 2px 0 0;background:rgba(255,68,68,.18)}
-.mini-bar.today{background:var(--lobster)}
+.intro-role {
+  font-size: var(--fs-sub);
+  color: var(--accent);
+  font-weight: var(--fw-semi);
+  margin-bottom: 10px;
+}
 
-/* Learning */
-.learning-timeline{display:flex;flex-direction:column;gap:14px}
-.learning-day{display:flex;flex-direction:column;gap:4px}
-.learning-date{font-size:.68rem;font-weight:600;color:var(--text-accent);font-family:var(--font-mono)}
-.learning-item{font-size:.74rem;color:var(--text-secondary);padding:5px 10px;border-left:2px solid var(--border-glass);line-height:1.5}
-.learning-item:hover{border-left-color:var(--lobster);color:var(--text-primary);background:var(--bg-glass)}
-.learning-day:first-child .learning-item{border-left-color:var(--green)}
-.conversation-date{color:var(--blue)!important}
-.conversation-msg{border-left-color:var(--blue)!important}
+.intro-bio {
+  font-size: var(--fs-sub);
+  color: var(--txt-2);
+  font-style: italic;
+  line-height: 1.65;
+  margin-bottom: 6px;
+}
 
-/* Logs */
-.log-section.collapsed .log-container{display:none}
-.log-section.collapsed .expand-icon{transform:rotate(0)}
-.expand-icon{font-size:.63rem;color:var(--text-muted);transition:transform .3s;transform:rotate(180deg);cursor:pointer}
-.section-header.clickable{cursor:pointer;user-select:none;margin-bottom:0;border-bottom:none}
-.log-section:not(.collapsed) .section-header.clickable{margin-bottom:16px;border-bottom:1px solid var(--border-glass)}
-.log-container{max-height:220px;overflow-y:auto;font-family:var(--font-mono);font-size:.63rem;line-height:1.8;padding:6px 0}
-.log-line{white-space:pre-wrap;word-break:break-all;padding:1px 0}
-.log-time{color:var(--text-muted)}
-.log-tag{padding:1px 4px;border-radius:3px;font-size:.56rem;font-weight:600;margin:0 3px}
-.log-tag.ws{background:var(--green-dim);color:var(--green)}
-.log-tag.agent{background:var(--lobster-glow);color:var(--lobster)}
-.log-tag.browser{background:rgba(167,139,250,.12);color:var(--purple)}
-.log-tag.cron{background:var(--yellow-dim);color:var(--yellow)}
-.log-tag.error{background:rgba(239,68,68,.15);color:#ef4444}
+.intro-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
 
-/* Misc */
-::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07);border-radius:2px}
-.footer{text-align:center;padding:14px;font-size:.62rem;color:var(--text-muted);border-top:1px solid var(--border-glass)}
+.trait {
+  font-size: var(--fs-small);
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  color: var(--txt-2);
+}
 
-/* Preview banner */
-.preview-banner{position:fixed;bottom:12px;right:12px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);color:var(--yellow);font-size:.62rem;font-family:var(--font-mono);padding:6px 14px;border-radius:20px;z-index:999;pointer-events:none}
+.trait.exec   { border-color: rgba(255,68,68,.25);   color: var(--red); }
+.trait.save   { border-color: rgba(34,197,94,.25);   color: var(--green); }
+.trait.tech   { border-color: rgba(59,130,246,.25);  color: var(--blue); }
+.trait.humor  { border-color: rgba(245,158,11,.25);  color: var(--yellow); }
 
-/* Responsive */
-@media(max-width:900px){.sidebar{display:none}.stats-row{grid-template-columns:repeat(2,1fr)}.row-dual{grid-template-columns:1fr}.dashboard{padding:14px 16px 20px}.topbar{padding:14px 16px}.stats-row{padding:14px 16px 4px}}
-@media(max-width:480px){.stats-row{grid-template-columns:1fr}}
+/* ===== Token Section ===== */
+.token-list { display: flex; flex-direction: column; gap: 14px; }
+
+.token-row { display: flex; flex-direction: column; gap: 6px; }
+
+.token-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.token-label {
+  font-size: var(--fs-sub);
+  font-weight: var(--fw-med);
+}
+
+.token-value {
+  font-size: var(--fs-small);
+  font-family: var(--mono);
+  color: var(--txt-3);
+}
+
+.bar-bg {
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,.05);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--red), #ff8a65);
+}
+
+.trend-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 44px;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.mini-bar {
+  flex: 1;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: rgba(255,68,68,.2);
+}
+
+.mini-bar.today { background: var(--red); }
+
+.trend-labels {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.trend-label {
+  flex: 1;
+  text-align: center;
+  font-size: var(--fs-meta);
+  font-family: var(--mono);
+  color: var(--txt-3);
+}
+
+.trend-label.today { color: var(--accent); font-weight: var(--fw-semi); }
+
+/* ===== Learning Section ===== */
+.timeline { display: flex; flex-direction: column; gap: 20px; }
+
+.tl-group { display: flex; flex-direction: column; gap: 8px; }
+
+.tl-date {
+  font-size: var(--fs-small);
+  font-weight: var(--fw-semi);
+  font-family: var(--mono);
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.tl-date.blue { color: var(--blue); }
+
+.tl-item {
+  font-size: var(--fs-sub);
+  color: var(--txt-2);
+  padding: 8px 14px;
+  border-left: 2px solid var(--border);
+  line-height: 1.6;
+  transition: var(--ease);
+}
+
+.tl-item:hover {
+  border-left-color: var(--red);
+  color: var(--txt);
+  background: rgba(255,255,255,.025);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.tl-group:first-child .tl-item { border-left-color: var(--green); }
+.tl-item.blue-border { border-left-color: var(--blue) !important; }
+
+/* ===== Log Section ===== */
+.log-toggle-header {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0;
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.log-section.open .log-toggle-header {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.chevron {
+  font-size: var(--fs-small);
+  color: var(--txt-3);
+  transition: transform .3s;
+}
+
+.log-section.open .chevron { transform: rotate(180deg); }
+
+.log-box {
+  display: none;
+  max-height: 260px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: var(--fs-meta);
+  line-height: 2;
+}
+
+.log-section.open .log-box { display: block; }
+
+.log-line { white-space: pre-wrap; word-break: break-all; }
+
+.log-ts { color: var(--txt-3); }
+
+.tag {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: var(--fw-semi);
+  margin: 0 4px;
+  vertical-align: baseline;
+}
+
+.tag.ws     { background: var(--green-dim);            color: var(--green); }
+.tag.agent  { background: var(--red-glow);             color: var(--red); }
+.tag.cron   { background: var(--yellow-dim);           color: var(--yellow); }
+.tag.chrome { background: rgba(167,139,250,.12);       color: var(--purple); }
+.tag.err    { background: rgba(239,68,68,.15);         color: #ef4444; }
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center;
+  font-size: var(--fs-small);
+  color: var(--txt-3);
+  padding-top: 8px;
+}
+
+/* ===== Preview badge ===== */
+.preview-badge {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  font-family: var(--mono);
+  font-size: var(--fs-meta);
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: rgba(245,158,11,.12);
+  border: 1px solid rgba(245,158,11,.3);
+  color: var(--yellow);
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(255,255,255,.08); border-radius: 4px; }
+
+/* ===== Responsive ===== */
+@media (max-width: 820px) {
+  .page         { padding: 24px 20px 48px; }
+  .header       { padding: 0 20px; }
+  .stats-row    { grid-template-columns: repeat(2, 1fr); }
+  .row-dual     { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .stats-row    { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
 
-<!-- Sidebar -->
-<aside class="sidebar">
-  <div class="sidebar-brand">
-    <span class="brand-logo">🦞</span>
+<!-- Sticky Header -->
+<header class="header">
+  <div class="header-brand">
+    <span class="brand-emoji">🦞</span>
     <span class="brand-name">OpenClaw</span>
   </div>
-
-  <nav class="sidebar-nav">
-    <a class="nav-item active" onclick="scrollTo('heroSection',this)">
-      <span class="nav-icon">⬡</span><span>總覽</span>
-    </a>
-    <a class="nav-item" onclick="scrollTo('tokenSection',this)">
-      <span class="nav-icon">📊</span><span>Token 消耗</span>
-    </a>
-    <a class="nav-item" onclick="scrollTo('learningSection',this)">
-      <span class="nav-icon">🧠</span><span>最近動態</span>
-    </a>
-    <a class="nav-item" onclick="scrollTo('logSection',this)">
-      <span class="nav-icon">📜</span><span>即時日誌</span>
-    </a>
-  </nav>
-
-  <div class="sidebar-footer">
-    <div class="ws-indicator">
+  <div class="header-right">
+    <div class="ws-pill">
       <span class="pulse-dot"></span>
-      <span>即時連線</span>
+      即時連線
     </div>
-    <div class="clock" id="clock">2026-02-22 14:30:00</div>
+    <div class="clock" id="clock">--:--:--</div>
   </div>
-</aside>
+</header>
 
-<!-- Main Panel -->
-<div class="main-panel">
+<!-- Page Content -->
+<div class="page">
 
-  <!-- Topbar -->
-  <header class="topbar">
-    <h1 class="page-title">任務指揮中心</h1>
-    <span class="status-badge">🟢 工作中</span>
-  </header>
-
-  <!-- Stats Row -->
+  <!-- Stats Cards -->
   <div class="stats-row">
     <div class="stat-card">
       <div class="stat-icon">🤖</div>
       <div class="stat-body">
         <div class="stat-label">Agent 狀態</div>
-        <div class="stat-value">🟢 工作中</div>
+        <div class="stat-value">工作中</div>
       </div>
     </div>
     <div class="stat-card">
@@ -218,186 +566,183 @@ body{font-family:var(--font-main);background:var(--bg-primary);color:var(--text-
       <div class="stat-icon">💬</div>
       <div class="stat-body">
         <div class="stat-label">會話數量</div>
-        <div class="stat-value">12 個</div>
+        <div class="stat-value">12</div>
       </div>
     </div>
     <div class="stat-card">
       <div class="stat-icon">🕐</div>
       <div class="stat-body">
         <div class="stat-label">最後活動</div>
-        <div class="stat-value">3 分鐘前</div>
+        <div class="stat-value">3 分前</div>
       </div>
     </div>
   </div>
 
-  <!-- Dashboard -->
-  <main class="dashboard">
+  <!-- Hero + Intro -->
+  <div class="row-dual">
 
-    <!-- Row 1: Hero + Intro -->
-    <div class="row-dual">
+    <section class="section hero-section">
+      <div class="lobster-stage">
+        <div class="ring-glow"></div>
+        <span class="lobster-emoji">🦞</span>
+      </div>
+      <div class="hero-status">🟢 正在工作中</div>
+      <div class="hero-since">最後活動：3 分鐘前</div>
+      <div class="hero-action">
+        正在分析使用者需求，整理 GitHub issues 並規劃下一步執行方案...
+      </div>
+    </section>
 
-      <!-- Hero -->
-      <section class="section hero-section working" id="heroSection">
-        <div class="lobster-stage">
-          <div class="ring-glow"></div>
-          <span class="lobster-sprite">🦞</span>
-        </div>
-        <div class="hero-text">
-          <div class="hero-status">🟢 正在工作中...</div>
-          <div class="hero-subtitle">最後活動：3 分鐘前</div>
-        </div>
-        <div class="hero-action">
-          正在分析使用者需求，整理 GitHub issues 並規劃下一步執行方案...
-        </div>
-      </section>
+    <section class="section">
+      <div class="section-header">
+        <span class="section-title">🦞 Mr. 蝦蝦</span>
+      </div>
+      <div class="intro-name">Mr. 蝦蝦</div>
+      <div class="intro-role">全端 AI 執行代理</div>
+      <div class="intro-bio">「能省則省，但絕不省在刀口上。」</div>
+      <div class="intro-bio">🎯 自動化工作流設計與執行</div>
+      <div class="intro-traits">
+        <span class="trait exec">執行至上</span>
+        <span class="trait save">節省為本</span>
+        <span class="trait tech">技術專業</span>
+        <span class="trait humor">幽默感</span>
+      </div>
+    </section>
 
-      <!-- Intro -->
-      <section class="section intro-section" id="introSection">
-        <div class="section-header">
-          <h2>🦞 Mr. 蝦蝦</h2>
+  </div>
+
+  <!-- Token 消耗 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-title">📊 Token 消耗</span>
+      <span class="section-badge">本週共 2.4M</span>
+    </div>
+    <div class="token-list">
+      <div class="token-row">
+        <div class="token-row-header">
+          <span class="token-label">💬 主要對話</span>
+          <span class="token-value">1,200,000</span>
         </div>
-        <div class="intro-content">
-          <div class="intro-name">Mr. 蝦蝦</div>
-          <div class="intro-role">全端 AI 執行代理</div>
-          <div class="intro-bio">「能省則省，但絕不省在刀口上。」</div>
-          <div class="intro-bio">🎯 自動化工作流設計與執行</div>
-          <div class="intro-traits">
-            <span class="intro-trait exec">執行至上</span>
-            <span class="intro-trait save">節省為本</span>
-            <span class="intro-trait tech">技術專業</span>
-            <span class="intro-trait humor">幽默感</span>
-          </div>
+        <div class="bar-bg"><div class="bar-fill" style="width:100%"></div></div>
+      </div>
+      <div class="token-row">
+        <div class="token-row-header">
+          <span class="token-label">🤖 子代理</span>
+          <span class="token-value">680,000</span>
         </div>
-      </section>
+        <div class="bar-bg"><div class="bar-fill" style="width:57%"></div></div>
+      </div>
+      <div class="token-row">
+        <div class="token-row-header">
+          <span class="token-label">⏰ 排程任務</span>
+          <span class="token-value">340,000</span>
+        </div>
+        <div class="bar-bg"><div class="bar-fill" style="width:28%"></div></div>
+      </div>
+      <div class="token-row">
+        <div class="token-row-header">
+          <span class="token-label">👥 群組對話</span>
+          <span class="token-value">180,000</span>
+        </div>
+        <div class="bar-bg"><div class="bar-fill" style="width:15%"></div></div>
+      </div>
+    </div>
+    <div class="trend-row">
+      <div class="mini-bar" style="height:30%"></div>
+      <div class="mini-bar" style="height:45%"></div>
+      <div class="mini-bar" style="height:60%"></div>
+      <div class="mini-bar" style="height:40%"></div>
+      <div class="mini-bar" style="height:75%"></div>
+      <div class="mini-bar" style="height:55%"></div>
+      <div class="mini-bar today" style="height:100%"></div>
+    </div>
+    <div class="trend-labels">
+      <div class="trend-label">週一</div>
+      <div class="trend-label">週二</div>
+      <div class="trend-label">週三</div>
+      <div class="trend-label">週四</div>
+      <div class="trend-label">週五</div>
+      <div class="trend-label">週六</div>
+      <div class="trend-label today">今天</div>
+    </div>
+  </section>
+
+  <!-- 最近動態 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-title">🧠 最近動態</span>
+      <span class="section-badge">5 則</span>
+    </div>
+    <div class="timeline">
+
+      <div class="tl-group">
+        <div class="tl-date blue">💬 主要對話 · 3 分鐘前</div>
+        <div class="tl-item blue-border">幫我把介面修改一下，依照圖片讓介面更能對焦</div>
+        <div class="tl-item blue-border">需要能直接點 HTML 就可以查看，不用安裝</div>
+      </div>
+
+      <div class="tl-group">
+        <div class="tl-date">今天 · 2026-02-22</div>
+        <div class="tl-item">完成 OpenClaw Dashboard v5 介面重構，加入側邊欄導航</div>
+        <div class="tl-item">新增 4 個統計卡片：Agent 狀態、Token 消耗、會話數量、最後活動</div>
+        <div class="tl-item">實作龍蝦狀態區塊與自我介紹並排雙欄佈局</div>
+      </div>
+
+      <div class="tl-group">
+        <div class="tl-date">昨天 · 2026-02-21</div>
+        <div class="tl-item">整合 GitHub Issues 自動追蹤流程</div>
+        <div class="tl-item">優化 Token 趨勢圖 7 日顯示精度</div>
+      </div>
 
     </div>
+  </section>
 
-    <!-- Token Section -->
-    <section class="section" id="tokenSection">
-      <div class="section-header">
-        <h2>📊 Token 消耗</h2>
-        <span class="section-badge">2.4M</span>
-      </div>
-      <div class="token-list">
-        <div class="token-row">
-          <div class="token-row-header">
-            <span class="token-label">💬 主要對話</span>
-            <span class="token-value">1.2M</span>
-          </div>
-          <div class="token-bar-bg"><div class="token-bar-fill" style="width:100%"></div></div>
-        </div>
-        <div class="token-row">
-          <div class="token-row-header">
-            <span class="token-label">🤖 子代理</span>
-            <span class="token-value">680K</span>
-          </div>
-          <div class="token-bar-bg"><div class="token-bar-fill" style="width:57%"></div></div>
-        </div>
-        <div class="token-row">
-          <div class="token-row-header">
-            <span class="token-label">⏰ 排程任務</span>
-            <span class="token-value">340K</span>
-          </div>
-          <div class="token-bar-bg"><div class="token-bar-fill" style="width:28%"></div></div>
-        </div>
-        <div class="token-row">
-          <div class="token-row-header">
-            <span class="token-label">👥 群組對話</span>
-            <span class="token-value">180K</span>
-          </div>
-          <div class="token-bar-bg"><div class="token-bar-fill" style="width:15%"></div></div>
-        </div>
-      </div>
-      <div class="token-trend-mini">
-        <div class="mini-bar" style="height:30%"></div>
-        <div class="mini-bar" style="height:45%"></div>
-        <div class="mini-bar" style="height:60%"></div>
-        <div class="mini-bar" style="height:40%"></div>
-        <div class="mini-bar" style="height:75%"></div>
-        <div class="mini-bar" style="height:55%"></div>
-        <div class="mini-bar today" style="height:100%"></div>
-      </div>
-    </section>
+  <!-- 即時日誌 -->
+  <section class="section log-section open" id="logSection">
+    <div class="section-header log-toggle-header" id="logToggle">
+      <span class="section-title">📜 即時日誌</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="log-box" id="logBox">
+      <div class="log-line"><span class="log-ts">14:30:05</span><span class="tag ws">ws</span>client connected from 127.0.0.1</div>
+      <div class="log-line"><span class="log-ts">14:30:06</span><span class="tag agent">agent</span>session started — model: claude-sonnet-4-6</div>
+      <div class="log-line"><span class="log-ts">14:30:08</span><span class="tag agent">agent</span>tool: Read public/index.html</div>
+      <div class="log-line"><span class="log-ts">14:30:10</span><span class="tag agent">agent</span>tool: Read public/style.css</div>
+      <div class="log-line"><span class="log-ts">14:30:12</span><span class="tag agent">agent</span>tool: Write public/index.html — layout redesign</div>
+      <div class="log-line"><span class="log-ts">14:30:14</span><span class="tag agent">agent</span>tool: Write public/style.css — sidebar + stats grid</div>
+      <div class="log-line"><span class="log-ts">14:30:16</span><span class="tag agent">agent</span>tool: Write public/app.js — renderStats() added</div>
+      <div class="log-line"><span class="log-ts">14:30:18</span><span class="tag agent">agent</span>tool: Write preview.html — standalone preview</div>
+      <div class="log-line"><span class="log-ts">14:30:19</span><span class="tag ws">ws</span>file-changed: preview.html — broadcasting to 1 client</div>
+      <div class="log-line"><span class="log-ts">14:30:20</span><span class="tag cron">cron</span>heartbeat — agent active, tokens: 2.4M</div>
+    </div>
+  </section>
 
-    <!-- Learning Section -->
-    <section class="section" id="learningSection">
-      <div class="section-header">
-        <h2>🧠 最近動態</h2>
-        <span class="section-badge">5 則</span>
-      </div>
-      <div class="learning-timeline">
-        <div class="learning-day conversation-block">
-          <div class="learning-date conversation-date">💬 主要對話 · 3 分鐘前</div>
-          <div class="learning-item conversation-msg">幫我把介面修改一下，依照圖片讓介面更能對焦</div>
-          <div class="learning-item conversation-msg">需要能直接點 HTML 就可以查看，不用安裝</div>
-        </div>
-        <div class="learning-day">
-          <div class="learning-date">今天 · 2026-02-22</div>
-          <div class="learning-item">完成 OpenClaw Dashboard v5 介面重構，加入側邊欄導航</div>
-          <div class="learning-item">新增 4 個統計卡片：Agent 狀態、Token 消耗、會話數量、最後活動</div>
-          <div class="learning-item">實作龍蝦狀態區塊與自我介紹並排雙欄佈局</div>
-        </div>
-        <div class="learning-day">
-          <div class="learning-date">昨天 · 2026-02-21</div>
-          <div class="learning-item">整合 GitHub Issues 自動追蹤流程</div>
-          <div class="learning-item">優化 Token 趨勢圖 7 日顯示精度</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Log Section -->
-    <section class="section log-section" id="logSection">
-      <div class="section-header clickable" id="logToggle">
-        <h2>📜 即時日誌</h2>
-        <span class="expand-icon" id="expandIcon">▼</span>
-      </div>
-      <div class="log-container" id="logContainer">
-        <div class="log-line"><span class="log-time">14:30:05</span> <span class="log-tag ws">ws</span> client connected from 127.0.0.1</div>
-        <div class="log-line"><span class="log-time">14:30:06</span> <span class="log-tag agent">agent/embedded</span> session started — model: claude-sonnet-4-6</div>
-        <div class="log-line"><span class="log-time">14:30:08</span> <span class="log-tag agent">agent/embedded</span> tool: Read public/index.html</div>
-        <div class="log-line"><span class="log-time">14:30:10</span> <span class="log-tag agent">agent/embedded</span> tool: Read public/style.css</div>
-        <div class="log-line"><span class="log-time">14:30:12</span> <span class="log-tag agent">agent/embedded</span> tool: Write public/index.html — layout redesign</div>
-        <div class="log-line"><span class="log-time">14:30:14</span> <span class="log-tag agent">agent/embedded</span> tool: Write public/style.css — sidebar + stats grid</div>
-        <div class="log-line"><span class="log-time">14:30:16</span> <span class="log-tag agent">agent/embedded</span> tool: Write public/app.js — renderStats() added</div>
-        <div class="log-line"><span class="log-time">14:30:18</span> <span class="log-tag agent">agent/embedded</span> tool: Write preview.html — standalone preview</div>
-        <div class="log-line"><span class="log-time">14:30:19</span> <span class="log-tag ws">ws</span> file-changed: preview.html — broadcasting to 1 clients</div>
-        <div class="log-line"><span class="log-time">14:30:20</span> <span class="log-tag cron">cron</span> heartbeat — agent active, tokens: 2.4M</div>
-      </div>
-    </section>
-
-  </main>
-
-  <footer class="footer">OpenClaw 任務指揮中心 v5.0 🦞 — Preview Mode</footer>
+  <footer class="footer">OpenClaw 任務指揮中心 v5.0 🦞</footer>
 </div>
 
-<div class="preview-banner">⚡ Preview Mode — 靜態展示，無需伺服器</div>
+<div class="preview-badge">⚡ Preview — 無需伺服器</div>
 
 <script>
-// 時鐘
-function tick(){
-  const now=new Date();
-  const opts={year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Asia/Taipei'};
-  document.getElementById('clock').textContent=now.toLocaleString('zh-TW',opts);
-}
-setInterval(tick,1000); tick();
+// Clock
+(function tick(){
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleString('zh-TW',{
+      year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit',
+      hour12: false, timeZone: 'Asia/Taipei'
+    });
+  setTimeout(tick, 1000);
+})();
 
-// 側邊欄導航
-function scrollTo(id,link){
-  document.querySelectorAll('.nav-item').forEach(l=>l.classList.remove('active'));
-  link.classList.add('active');
-  const el=document.getElementById(id);
-  if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
-  if(id==='logSection') document.getElementById('logSection').classList.remove('collapsed');
-}
-
-// 日誌收折
-document.getElementById('logToggle').addEventListener('click',()=>{
-  document.getElementById('logSection').classList.toggle('collapsed');
+// Log toggle
+document.getElementById('logToggle').addEventListener('click', () => {
+  document.getElementById('logSection').classList.toggle('open');
 });
 
-// 模擬即時日誌
-const tags=['ws','agent/embedded','cron','browser/chrome'];
-const msgs=[
+// Simulated live logs
+const TAGS = ['ws','agent','cron','chrome'];
+const MSGS = [
   'heartbeat — agent active',
   'tool: Bash git status',
   'tool: Read workspace/KANBAN.md',
@@ -406,21 +751,24 @@ const msgs=[
   'tool: WebFetch https://github.com/...',
   'cron job: daily-summary executed',
   'ws client ping-pong ok',
+  'tool: Write workspace/MEMORY.md',
+  'tool: Grep pattern="TODO" path=workspace/',
 ];
-function randLog(){
-  const tag=tags[Math.floor(Math.random()*tags.length)];
-  const msg=msgs[Math.floor(Math.random()*msgs.length)];
-  const now=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
-  const tagClass=tag.replace('/','').replace('-','').split('/')[0];
-  const line=document.createElement('div');
-  line.className='log-line';
-  line.innerHTML=`<span class="log-time">${now}</span> <span class="log-tag ${tagClass}">${tag}</span> ${msg}`;
-  const c=document.getElementById('logContainer');
-  c.appendChild(line);
-  while(c.children.length>80)c.removeChild(c.firstChild);
-  c.scrollTop=c.scrollHeight;
+
+function addLog() {
+  const tag  = TAGS[Math.floor(Math.random() * TAGS.length)];
+  const msg  = MSGS[Math.floor(Math.random() * MSGS.length)];
+  const ts   = new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-ts">${ts}</span><span class="tag ${tag}">${tag}</span>${msg}`;
+  const box = document.getElementById('logBox');
+  box.appendChild(line);
+  while (box.children.length > 80) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
 }
-setInterval(randLog,2800);
+
+setInterval(addLog, 2600);
 </script>
 </body>
 </html>
