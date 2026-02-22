@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,83 +7,54 @@
   <meta name="description" content="OpenClaw — 即時監控你的 AI Agent 活動狀態與學習進展">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Press+Start+2P&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-brand">
+
+  <!-- Sticky Header -->
+  <header class="header">
+    <div class="header-brand">
       <img src="lobster.png" alt="🦞" class="brand-logo">
       <span class="brand-name">OpenClaw</span>
     </div>
-
-    <nav class="sidebar-nav">
-      <a href="#overview" class="nav-item active" data-section="overview">
-        <span class="nav-icon">⬡</span>
-        <span class="nav-label">總覽</span>
-      </a>
-      <a href="#tokens" class="nav-item" data-section="tokens">
-        <span class="nav-icon">📊</span>
-        <span class="nav-label">Token 消耗</span>
-      </a>
-      <a href="#activity" class="nav-item" data-section="activity">
-        <span class="nav-icon">🧠</span>
-        <span class="nav-label">最近動態</span>
-      </a>
-      <a href="#logs" class="nav-item" data-section="logs">
-        <span class="nav-icon">📜</span>
-        <span class="nav-label">即時日誌</span>
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <div class="ws-indicator" id="wsIndicator">
+    <div class="header-right">
+      <div class="ws-pill" id="wsIndicator">
         <span class="pulse-dot"></span>
         <span class="ws-text">連線中...</span>
       </div>
       <div class="clock" id="clock"></div>
     </div>
-  </aside>
+  </header>
 
-  <!-- Main Panel -->
-  <div class="main-panel">
+  <!-- Page Content -->
+  <div class="page">
 
-    <!-- Topbar -->
-    <header class="topbar">
-      <h1 class="page-title">任務指揮中心</h1>
-      <div class="topbar-right">
-        <span class="status-badge" id="agentStatusBadge">載入中...</span>
-      </div>
-    </header>
-
-    <!-- Stats Row -->
+    <!-- Stats Cards -->
     <div class="stats-row">
-      <div class="stat-card" id="statStatus">
+      <div class="stat-card">
         <div class="stat-icon">🤖</div>
         <div class="stat-body">
           <div class="stat-label">Agent 狀態</div>
           <div class="stat-value" id="statStatusVal">—</div>
         </div>
       </div>
-      <div class="stat-card" id="statTokens">
+      <div class="stat-card">
         <div class="stat-icon">⚡</div>
         <div class="stat-body">
           <div class="stat-label">Token 消耗</div>
           <div class="stat-value" id="statTokensVal">—</div>
         </div>
       </div>
-      <div class="stat-card" id="statSessions">
+      <div class="stat-card">
         <div class="stat-icon">💬</div>
         <div class="stat-body">
           <div class="stat-label">會話數量</div>
           <div class="stat-value" id="statSessionsVal">—</div>
         </div>
       </div>
-      <div class="stat-card" id="statLastActive">
+      <div class="stat-card">
         <div class="stat-icon">🕐</div>
         <div class="stat-body">
           <div class="stat-label">最後活動</div>
@@ -93,75 +63,66 @@
       </div>
     </div>
 
-    <!-- Dashboard Content -->
-    <main class="dashboard">
+    <!-- Hero + Intro -->
+    <div class="row-dual">
 
-      <!-- Row 1: Hero + Intro side by side -->
-      <div class="row-dual">
+      <!-- 1️⃣ 龍蝦狀態 -->
+      <section class="section hero-section" id="heroSection">
+        <div class="lobster-stage">
+          <div class="ring-glow" id="ringGlow"></div>
+          <img src="lobster.png" alt="Mr. 蝦蝦" class="lobster-sprite" id="lobsterSprite">
+        </div>
+        <div class="hero-status" id="heroStatus">載入中...</div>
+        <div class="hero-since" id="heroSubtitle"></div>
+        <div class="hero-action" id="heroAction"></div>
+      </section>
 
-        <!-- 1️⃣ 龍蝦狀態 -->
-        <section class="section hero-section" id="heroSection">
-          <div class="lobster-stage">
-            <div class="ring-glow" id="ringGlow"></div>
-            <img src="lobster.png" alt="Mr. 蝦蝦" class="lobster-sprite" id="lobsterSprite">
-          </div>
-          <div class="hero-text">
-            <div class="hero-status" id="heroStatus">載入中...</div>
-            <div class="hero-subtitle" id="heroSubtitle"></div>
-          </div>
-          <div class="hero-action" id="heroAction"></div>
-        </section>
+      <!-- 2️⃣ 龍蝦自我介紹 -->
+      <section class="section" id="introSection">
+        <div class="section-header">
+          <span class="section-title">🦞 Mr. 蝦蝦</span>
+        </div>
+        <div class="intro-content" id="introContent">
+          <div class="empty-state">載入中...</div>
+        </div>
+      </section>
 
-        <!-- 2️⃣ 龍蝦自我介紹 -->
-        <section class="section intro-section" id="introSection">
-          <div class="section-header">
-            <h2>🦞 Mr. 蝦蝦</h2>
-          </div>
-          <div class="intro-content" id="introContent">
-            <div class="empty-state">載入中...</div>
-          </div>
-        </section>
+    </div>
 
+    <!-- 3️⃣ Token 消耗 -->
+    <section class="section" id="tokenSection">
+      <div class="section-header">
+        <span class="section-title">📊 Token 消耗</span>
+        <span class="section-badge" id="tokenTotal">—</span>
       </div>
+      <div class="token-list" id="tokenList"></div>
+      <div class="trend-row" id="tokenTrendMini"></div>
+      <div class="trend-labels" id="trendLabels"></div>
+    </section>
 
-      <!-- 3️⃣ Token 消耗 -->
-      <section class="section" id="tokenSection">
-        <div class="section-header">
-          <h2>📊 Token 消耗</h2>
-          <span class="section-badge" id="tokenTotal">—</span>
-        </div>
-        <div class="token-list" id="tokenList"></div>
-        <div class="token-trend-mini" id="tokenTrendMini"></div>
-      </section>
+    <!-- 4️⃣ 最近動態 -->
+    <section class="section" id="learningSection">
+      <div class="section-header">
+        <span class="section-title">🧠 最近動態</span>
+        <span class="section-badge" id="learningCount">—</span>
+      </div>
+      <div class="timeline" id="learningTimeline"></div>
+    </section>
 
-      <!-- 4️⃣ 學習進展 -->
-      <section class="section" id="learningSection">
-        <div class="section-header">
-          <h2>🧠 最近動態</h2>
-          <span class="section-badge" id="learningCount">—</span>
-        </div>
-        <div class="learning-timeline" id="learningTimeline"></div>
-      </section>
+    <!-- 5️⃣ 即時日誌 -->
+    <section class="section log-section open" id="logSection">
+      <div class="section-header log-toggle-header" id="logToggle">
+        <span class="section-title">📜 即時日誌</span>
+        <span class="chevron" id="expandIcon">▼</span>
+      </div>
+      <div class="log-box" id="logContainer">
+        <div class="log-empty">等待日誌資料...</div>
+      </div>
+    </section>
 
-      <!-- 5️⃣ 即時日誌（可收起） -->
-      <section class="section log-section collapsed" id="logSection">
-        <div class="section-header clickable" id="logToggle">
-          <h2>📜 即時日誌</h2>
-          <span class="expand-icon" id="expandIcon">▼</span>
-        </div>
-        <div class="log-container" id="logContainer">
-          <div class="log-empty">等待日誌資料...</div>
-        </div>
-      </section>
-
-    </main>
-
-    <footer class="footer">
-      <p>OpenClaw 任務指揮中心 v4.0 🦞</p>
-    </footer>
+    <footer class="footer">OpenClaw 任務指揮中心 v5.0 🦞</footer>
   </div>
 
   <script src="app.js"></script>
 </body>
-
 </html>

@@ -7,36 +7,12 @@ let logCount = 0;
 const MAX_LOG_LINES = 300;
 
 // ===== 時鐘 =====
-function updateClock() {
+(function tick() {
     const now = new Date();
     const opts = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Taipei' };
     document.getElementById('clock').textContent = now.toLocaleString('zh-TW', opts);
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// ===== 側邊欄導航 =====
-const sectionAnchors = {
-    overview:  'heroSection',
-    tokens:    'tokenSection',
-    activity:  'learningSection',
-    logs:      'logSection',
-};
-
-document.querySelectorAll('.nav-item').forEach(link => {
-    link.addEventListener('click', e => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
-        link.classList.add('active');
-        const section = link.dataset.section;
-        const target = document.getElementById(sectionAnchors[section]);
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        // 展開日誌區塊（如果點選 logs 時是收起狀態）
-        if (section === 'logs') {
-            document.getElementById('logSection').classList.remove('collapsed');
-        }
-    });
-});
+    setTimeout(tick, 1000);
+})();
 
 // ===== 工具 =====
 function esc(str) {
@@ -80,11 +56,11 @@ function connectWS() {
     const ind = document.getElementById('wsIndicator');
 
     ws.onopen = () => {
-        ind.className = 'ws-indicator';
+        ind.className = 'ws-pill';
         ind.querySelector('.ws-text').textContent = '即時連線';
     };
     ws.onclose = () => {
-        ind.className = 'ws-indicator offline';
+        ind.className = 'ws-pill offline';
         ind.querySelector('.ws-text').textContent = '已斷線';
         setTimeout(connectWS, 3000);
     };
@@ -114,12 +90,12 @@ function appendLog(line) {
 function fmtLog(raw) {
     if (!raw) return '';
     let h = esc(raw);
-    h = h.replace(/^(\d{2}:\d{2}:\d{2})/, '<span class="log-time">$1</span>');
-    h = h.replace(/\b(ws)\b/gi, '<span class="log-tag ws">ws</span>');
-    h = h.replace(/\b(agent\/embedded)\b/g, '<span class="log-tag agent">agent/embedded</span>');
-    h = h.replace(/\b(browser\/chrome)\b/g, '<span class="log-tag browser">browser/chrome</span>');
-    h = h.replace(/\b(cron)\b/gi, '<span class="log-tag cron">cron</span>');
-    h = h.replace(/\b(error|fail|crash)\b/gi, '<span class="log-tag error">$1</span>');
+    h = h.replace(/^(\d{2}:\d{2}:\d{2})/, '<span class="log-ts">$1</span>');
+    h = h.replace(/\b(ws)\b/gi, '<span class="tag ws">ws</span>');
+    h = h.replace(/\b(agent\/embedded)\b/g, '<span class="tag agent">agent</span>');
+    h = h.replace(/\b(browser\/chrome)\b/g, '<span class="tag chrome">chrome</span>');
+    h = h.replace(/\b(cron)\b/gi, '<span class="tag cron">cron</span>');
+    h = h.replace(/\b(error|fail|crash)\b/gi, '<span class="tag error">$1</span>');
     return h;
 }
 
@@ -136,37 +112,25 @@ async function refresh() {
 
 // ===== Stats Cards =====
 function renderStats(s, sessions) {
-    // Agent 狀態
     const statusLabels = { working: '🟢 工作中', standby: '🟡 待命中', sleeping: '💤 休眠' };
-    const statusVal = statusLabels[s?.status] || '—';
-    document.getElementById('statStatusVal').textContent = statusVal;
+    document.getElementById('statStatusVal').textContent = statusLabels[s?.status] || '—';
 
-    // 頂部 badge
-    const badge = document.getElementById('agentStatusBadge');
-    badge.textContent = statusVal;
-    badge.className = 'status-badge';
-    if (s?.status === 'standby') badge.classList.add('standby');
-    else if (s?.status === 'sleeping') badge.classList.add('sleeping');
-
-    // Token 總計
     const total = sessions ? sessions.reduce((sum, s) => sum + (s.totalTokens || 0), 0) : 0;
     document.getElementById('statTokensVal').textContent = fmtTokens(total);
 
-    // 會話數
     const sessionCount = sessions ? sessions.filter(s => s.totalTokens > 0).length : 0;
-    document.getElementById('statSessionsVal').textContent = `${sessionCount} 個`;
+    document.getElementById('statSessionsVal').textContent = `${sessionCount}`;
 
-    // 最後活動
     document.getElementById('statLastActiveVal').textContent = s?.lastActivityAt ? timeAgo(s.lastActivityAt) : '—';
 }
 
-// ===== 1. Hero — 龍蝦狀態 =====
+// ===== 1. Hero =====
 function renderHero(s) {
     if (!s) return;
     const el = document.getElementById('heroSection');
     el.className = `section hero-section ${s.status}`;
 
-    const labels = { working: '🟢 正在工作中...', standby: '🟡 待命中', sleeping: '💤 休眠中' };
+    const labels = { working: '🟢 正在工作中', standby: '🟡 待命中', sleeping: '💤 休眠中' };
     document.getElementById('heroStatus').textContent = labels[s.status] || '—';
     document.getElementById('heroSubtitle').textContent = s.lastActivityAt ? `最後活動：${timeAgo(s.lastActivityAt)}` : '';
 
@@ -189,7 +153,6 @@ function renderIntro(agent) {
     const role = id.role || '';
     const vibe = id.vibe || '';
     const coreSkill = id.coreSkill || '';
-
     const truths = id.coreTruths || [];
     const traitClasses = { '執行至上': 'exec', '節省為本': 'save', '技術專業': 'tech', '幽默感': 'humor' };
 
@@ -218,13 +181,12 @@ function renderTokens(sessions, trend) {
     const ranked = sessions.filter(s => s.totalTokens > 0).sort((a, b) => b.totalTokens - a.totalTokens);
     const maxT = ranked[0]?.totalTokens || 1;
     const total = ranked.reduce((sum, s) => sum + s.totalTokens, 0);
+    document.getElementById('tokenTotal').textContent = `共 ${fmtTokens(total)}`;
 
-    document.getElementById('tokenTotal').textContent = fmtTokens(total);
-
-    const labels = { dm: '主要對話', group: '群組對話', cron: '排程任務', subagent: '子代理', topic: '話題', other: '其他' };
+    const typeLabels = { dm: '主要對話', group: '群組對話', cron: '排程任務', subagent: '子代理', topic: '話題', other: '其他' };
 
     ranked.forEach(s => {
-        let name = s.origin || labels[s.type] || s.key;
+        let name = s.origin || typeLabels[s.type] || s.key;
         if (s.type === 'cron') {
             const m = s.key.match(/cron:([a-f0-9-]+)/);
             name = m ? `排程 ${m[1].substring(0, 8)}` : '排程';
@@ -236,7 +198,7 @@ function renderTokens(sessions, trend) {
         row.className = 'token-row';
         row.innerHTML = `
             <div class="token-row-header">
-                <span class="token-label">${s.icon} ${esc(name)}</span>
+                <span class="token-label">${s.icon || ''} ${esc(name)}</span>
                 <span class="token-value">${fmtTokens(s.totalTokens)}</span>
             </div>
             <div class="token-bar-bg"><div class="token-bar-fill" style="width:${pct}%"></div></div>
@@ -244,52 +206,64 @@ function renderTokens(sessions, trend) {
         list.appendChild(row);
     });
 
+    // 7-day trend
     if (trend?.length > 0) {
         const mini = document.getElementById('tokenTrendMini');
+        const labels = document.getElementById('trendLabels');
         mini.innerHTML = '';
+        labels.innerHTML = '';
+
         const mx = Math.max(...trend.map(d => d.totalTokens), 1);
+        const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+
         trend.forEach((d, i) => {
+            const isToday = i === trend.length - 1;
             const bar = document.createElement('div');
-            bar.className = `mini-bar${i === trend.length - 1 ? ' today' : ''}`;
+            bar.className = `mini-bar${isToday ? ' today' : ''}`;
             bar.style.height = `${Math.max(2, (d.totalTokens / mx) * 100)}%`;
             bar.title = `${d.date.substring(5)}: ${fmtTokens(d.totalTokens)}`;
             mini.appendChild(bar);
+
+            const lbl = document.createElement('div');
+            const dateObj = new Date(d.date + 'T00:00:00');
+            lbl.className = `trend-label${isToday ? ' today' : ''}`;
+            lbl.textContent = isToday ? '今天' : `週${dayNames[dateObj.getDay()]}`;
+            labels.appendChild(lbl);
         });
     }
 }
 
-// ===== 4. 最近動態（對話 + 記憶） =====
+// ===== 4. 最近動態 =====
 function renderLearning(logs, summaries) {
     const tl = document.getElementById('learningTimeline');
     tl.innerHTML = '';
-
     let count = 0;
 
     if (summaries && summaries.length > 0) {
         summaries.forEach(session => {
             if (!session.messages || session.messages.length === 0) return;
-            const block = document.createElement('div');
-            block.className = 'learning-day conversation-block';
+            const group = document.createElement('div');
+            group.className = 'tl-group';
 
             const name = session.origin || session.key;
-            block.innerHTML = `<div class="learning-date conversation-date">💬 ${esc(name)} · ${timeAgo(session.updatedAt)}</div>`;
+            group.innerHTML = `<div class="tl-date blue">💬 ${esc(name)} · ${timeAgo(session.updatedAt)}</div>`;
 
             session.messages.forEach(m => {
                 const el = document.createElement('div');
-                el.className = 'learning-item conversation-msg';
+                el.className = 'tl-item blue-border';
                 el.textContent = m.text.length > 150 ? m.text.substring(0, 150) + '...' : m.text;
-                block.appendChild(el);
+                group.appendChild(el);
             });
 
-            tl.appendChild(block);
+            tl.appendChild(group);
             count++;
         });
     }
 
     if (logs && logs.length > 0) {
         logs.forEach(log => {
-            const day = document.createElement('div');
-            day.className = 'learning-day';
+            const group = document.createElement('div');
+            group.className = 'tl-group';
 
             const now = new Date();
             const ld = new Date(log.date + 'T00:00:00');
@@ -298,32 +272,32 @@ function renderLearning(logs, summaries) {
             if (diff === 0) label = `今天 · ${log.date}`;
             else if (diff === 1) label = `昨天 · ${log.date}`;
 
-            day.innerHTML = `<div class="learning-date">${label}</div>`;
+            group.innerHTML = `<div class="tl-date">${label}</div>`;
 
             if (log.sections?.length > 0) {
                 log.sections.forEach(sec => {
                     if (sec.items?.length > 0) {
                         sec.items.slice(0, 3).forEach(item => {
                             const el = document.createElement('div');
-                            el.className = 'learning-item';
+                            el.className = 'tl-item';
                             el.textContent = item.length > 120 ? item.substring(0, 120) + '...' : item;
-                            day.appendChild(el);
+                            group.appendChild(el);
                         });
                     } else if (sec.title) {
                         const el = document.createElement('div');
-                        el.className = 'learning-item';
+                        el.className = 'tl-item';
                         el.textContent = sec.title;
-                        day.appendChild(el);
+                        group.appendChild(el);
                     }
                 });
             } else {
                 const el = document.createElement('div');
-                el.className = 'learning-item';
+                el.className = 'tl-item';
                 el.textContent = log.title || '無詳細內容';
-                day.appendChild(el);
+                group.appendChild(el);
             }
 
-            tl.appendChild(day);
+            tl.appendChild(group);
             count++;
         });
     }
@@ -332,9 +306,9 @@ function renderLearning(logs, summaries) {
     if (count === 0) tl.innerHTML = '<div class="empty-state">暫無紀錄</div>';
 }
 
-// ===== 日誌收起 =====
+// ===== 日誌收折 =====
 document.getElementById('logToggle').addEventListener('click', () => {
-    document.getElementById('logSection').classList.toggle('collapsed');
+    document.getElementById('logSection').classList.toggle('open');
 });
 
 // ===== 啟動 =====
