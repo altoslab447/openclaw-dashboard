@@ -477,6 +477,25 @@ body {
   border-left-color: var(--green);
 }
 
+/* 對話區塊 */
+.conversation-date {
+  color: var(--blue) !important;
+}
+
+.conversation-msg {
+  border-left-color: var(--blue) !important;
+}
+
+.conversation-msg:hover {
+  border-left-color: var(--lobster) !important;
+}
+
+.conversation-block+.learning-day:not(.conversation-block) {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-glass);
+}
+
 /* ===== 5. 即時日誌 ===== */
 .log-section.collapsed .log-container {
   display: none;

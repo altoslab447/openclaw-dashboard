@@ -107,7 +107,7 @@ async function refresh() {
     renderHero(data.agentStatus);
     renderIntro(data.agent);
     renderTokens(data.sessions, data.tokenTrend);
-    renderLearning(data.dailyLogs);
+    renderLearning(data.dailyLogs, data.summaries);
 }
 
 // ===== 1. Hero — 龍蝦狀態 =====
@@ -210,56 +210,80 @@ function renderTokens(sessions, trend) {
     }
 }
 
-// ===== 4. 學習進展 =====
-function renderLearning(logs) {
-    if (!logs) return;
+// ===== 4. 最近動態（對話 + 記憶） =====
+function renderLearning(logs, summaries) {
     const tl = document.getElementById('learningTimeline');
     tl.innerHTML = '';
-    document.getElementById('learningCount').textContent = `${logs.length} 天`;
 
-    if (logs.length === 0) {
-        tl.innerHTML = '<div class="empty-state">暫無學習紀錄</div>';
-        return;
+    let count = 0;
+
+    // 先顯示最近對話（來自 JSONL）
+    if (summaries && summaries.length > 0) {
+        summaries.forEach(session => {
+            if (!session.messages || session.messages.length === 0) return;
+            const block = document.createElement('div');
+            block.className = 'learning-day conversation-block';
+
+            const name = session.origin || session.key;
+            block.innerHTML = `<div class="learning-date conversation-date">💬 ${esc(name)} · ${timeAgo(session.updatedAt)}</div>`;
+
+            session.messages.forEach(m => {
+                const el = document.createElement('div');
+                el.className = 'learning-item conversation-msg';
+                el.textContent = m.text.length > 150 ? m.text.substring(0, 150) + '...' : m.text;
+                block.appendChild(el);
+            });
+
+            tl.appendChild(block);
+            count++;
+        });
     }
 
-    logs.forEach(log => {
-        const day = document.createElement('div');
-        day.className = 'learning-day';
+    // 再顯示每日記憶日誌
+    if (logs && logs.length > 0) {
+        logs.forEach(log => {
+            const day = document.createElement('div');
+            day.className = 'learning-day';
 
-        const now = new Date();
-        const ld = new Date(log.date + 'T00:00:00');
-        const diff = Math.floor((now - ld) / 86400000);
-        let label = log.date;
-        if (diff === 0) label = `今天 · ${log.date}`;
-        else if (diff === 1) label = `昨天 · ${log.date}`;
+            const now = new Date();
+            const ld = new Date(log.date + 'T00:00:00');
+            const diff = Math.floor((now - ld) / 86400000);
+            let label = log.date;
+            if (diff === 0) label = `今天 · ${log.date}`;
+            else if (diff === 1) label = `昨天 · ${log.date}`;
 
-        day.innerHTML = `<div class="learning-date">${label}</div>`;
+            day.innerHTML = `<div class="learning-date">${label}</div>`;
 
-        if (log.sections?.length > 0) {
-            log.sections.forEach(sec => {
-                if (sec.items?.length > 0) {
-                    sec.items.slice(0, 3).forEach(item => {
+            if (log.sections?.length > 0) {
+                log.sections.forEach(sec => {
+                    if (sec.items?.length > 0) {
+                        sec.items.slice(0, 3).forEach(item => {
+                            const el = document.createElement('div');
+                            el.className = 'learning-item';
+                            el.textContent = item.length > 120 ? item.substring(0, 120) + '...' : item;
+                            day.appendChild(el);
+                        });
+                    } else if (sec.title) {
                         const el = document.createElement('div');
                         el.className = 'learning-item';
-                        el.textContent = item.length > 120 ? item.substring(0, 120) + '...' : item;
+                        el.textContent = sec.title;
                         day.appendChild(el);
-                    });
-                } else if (sec.title) {
-                    const el = document.createElement('div');
-                    el.className = 'learning-item';
-                    el.textContent = sec.title;
-                    day.appendChild(el);
-                }
-            });
-        } else {
-            const el = document.createElement('div');
-            el.className = 'learning-item';
-            el.textContent = log.title || '無詳細內容';
-            day.appendChild(el);
-        }
+                    }
+                });
+            } else {
+                const el = document.createElement('div');
+                el.className = 'learning-item';
+                el.textContent = log.title || '無詳細內容';
+                day.appendChild(el);
+            }
 
-        tl.appendChild(day);
-    });
+            tl.appendChild(day);
+            count++;
+        });
+    }
+
+    document.getElementById('learningCount').textContent = count > 0 ? `${count} 則` : '—';
+    if (count === 0) tl.innerHTML = '<div class="empty-state">暫無紀錄</div>';
 }
 
 // ===== 日誌收起 =====
