@@ -9,7 +9,7 @@ const {
     parseKanban, parseSessionState, parseIdentity, parseMemory,
     parseSkills, parseCronJobs, parseConfig, parseStability,
     readRecentLogs, parseSingleLogLine, parseDailyLogs,
-    parseRecentSessions,
+    parseRecentSessions, parseSessionSummaries, parseTokenTrend,
     getOpenClawDir, getWorkspaceDirPath
 } = require('./parsers');
 
@@ -59,6 +59,15 @@ app.get('/api/sessions', (req, res) => {
     res.json(parseRecentSessions(count));
 });
 
+app.get('/api/summaries', (req, res) => {
+    res.json(parseSessionSummaries(5, 5));
+});
+
+app.get('/api/token-trend', (req, res) => {
+    const days = Math.min(parseInt(req.query.days) || 7, 30);
+    res.json(parseTokenTrend(days));
+});
+
 app.get('/api/all', (req, res) => {
     res.json({
         agent: { identity: parseIdentity(), session: parseSessionState() },
@@ -70,6 +79,8 @@ app.get('/api/all', (req, res) => {
         stability: parseStability(),
         dailyLogs: parseDailyLogs(7),
         sessions: parseRecentSessions(15),
+        summaries: parseSessionSummaries(5, 5),
+        tokenTrend: parseTokenTrend(7),
         timestamp: new Date().toISOString()
     });
 });
@@ -177,6 +188,19 @@ if (fs.existsSync(WORKSPACE_DIR)) {
 
         console.log(`👁️  監控 ${watchPatterns.length} 個工作區檔案`);
     }
+}
+
+// ===== 監控 sessions.json 變更 =====
+const SESSIONS_FILE = path.join(OPENCLAW_DIR, 'agents', 'main', 'sessions', 'sessions.json');
+if (fs.existsSync(SESSIONS_FILE)) {
+    const sessWatcher = chokidar.watch(SESSIONS_FILE, {
+        persistent: true, usePolling: true, interval: 3000, ignoreInitial: true
+    });
+    sessWatcher.on('change', () => {
+        console.log('🔄 sessions.json 已更新');
+        broadcast('data-changed', { file: 'sessions.json' });
+    });
+    console.log('👁️  監控 sessions.json 變更');
 }
 
 // ===== 啟動 =====

@@ -455,6 +455,8 @@ async function refresh() {
     if (data) {
         renderAgent(data.agent);
         renderSessions(data.sessions);
+        renderTokenTrend(data.tokenTrend);
+        renderSummaries(data.summaries);
         renderKanban(data.kanban);
         renderSkills(data.skills);
         renderCron(data.cron);
@@ -537,6 +539,74 @@ function renderKanban(data) {
         document.getElementById('kanbanUpdated').textContent = `更新: ${data.lastUpdated}`;
     }
 }
+// ===== 渲染：Token 趨勢圖 =====
+function renderTokenTrend(data) {
+    if (!data || data.length === 0) return;
+    const chart = document.getElementById('trendChart');
+    const stats = document.getElementById('trendStats');
+    chart.innerHTML = '';
+
+    const maxTokens = Math.max(...data.map(d => d.totalTokens), 1);
+    const totalTokens = data.reduce((sum, d) => sum + d.totalTokens, 0);
+    const totalSessions = data.reduce((sum, d) => sum + d.sessions, 0);
+    const avgPerDay = Math.round(totalTokens / data.length);
+
+    data.forEach(day => {
+        const wrap = document.createElement('div');
+        wrap.className = 'trend-bar-wrap';
+        const height = Math.max(2, (day.totalTokens / maxTokens) * 100);
+        const tokenK = day.totalTokens > 1000 ? `${(day.totalTokens / 1000).toFixed(0)}K` : `${day.totalTokens}`;
+        const label = day.date.substring(5); // MM-DD
+
+        wrap.innerHTML = `
+      <div class="trend-bar" style="height:${height}%">
+        <span class="trend-bar-value">${tokenK}</span>
+      </div>
+      <span class="trend-bar-label">${label}</span>
+    `;
+        chart.appendChild(wrap);
+    });
+
+    const totalK = totalTokens > 1000000 ? `${(totalTokens / 1000000).toFixed(1)}M` : `${(totalTokens / 1000).toFixed(0)}K`;
+    const avgK = avgPerDay > 1000 ? `${(avgPerDay / 1000).toFixed(0)}K` : `${avgPerDay}`;
+    document.getElementById('trendTotal').textContent = `${totalK} / 7 天`;
+
+    stats.innerHTML = `
+    <div class="trend-stat"><span class="trend-stat-label">7 天總計</span><span class="trend-stat-value">${totalK}</span></div>
+    <div class="trend-stat"><span class="trend-stat-label">日均</span><span class="trend-stat-value">${avgK}</span></div>
+    <div class="trend-stat"><span class="trend-stat-label">會話數</span><span class="trend-stat-value">${totalSessions}</span></div>
+  `;
+}
+
+// ===== 渲染：對話摘要 =====
+function renderSummaries(data) {
+    if (!data) return;
+    const list = document.getElementById('summariesList');
+    list.innerHTML = '';
+    document.getElementById('summaryCount').textContent = data.length;
+
+    if (data.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">💬</div>暫無對話紀錄</div>';
+        return;
+    }
+
+    data.forEach(session => {
+        if (!session.messages || session.messages.length === 0) return;
+        const card = document.createElement('div');
+        card.className = 'summary-card';
+
+        const displayName = session.origin || session.key;
+        card.innerHTML = `
+      <div class="summary-header">
+        <span class="summary-origin">${escHtml(displayName)}</span>
+        <span class="summary-time">${formatTime(session.updatedAt)}</span>
+      </div>
+      ${session.messages.map(m => `<div class="summary-msg">${escHtml(m.text)}</div>`).join('')}
+    `;
+        list.appendChild(card);
+    });
+}
+
 function renderDailyLogs(data) {
     if (!data) return;
     const timeline = document.getElementById('dailyTimeline');

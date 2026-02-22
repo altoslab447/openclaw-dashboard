@@ -459,6 +459,117 @@ function parseRecentSessions(maxSessions = 20) {
   }
 }
 
+// 從 session JSONL 提取最近對話摘要
+function parseSessionSummaries(maxSessions = 5, maxMsgs = 5) {
+  const sessionsDir = path.join(OPENCLAW_DIR, 'agents', 'main', 'sessions');
+  const sessionsFile = path.join(sessionsDir, 'sessions.json');
+  try {
+    const raw = fs.readFileSync(sessionsFile, 'utf-8');
+    const meta = JSON.parse(raw);
+
+    // 找到最近有活動的 sessions（排除 cron）
+    const candidates = [];
+    for (const [key, m] of Object.entries(meta)) {
+      if (!m.updatedAt || m.updatedAt === 0) continue;
+      if (key.includes(':cron:')) continue; // 跳過 cron sessions
+      const sessionId = m.sessionId;
+      if (!sessionId) continue;
+      const jsonlPath = path.join(sessionsDir, `${sessionId}.jsonl`);
+      if (!fs.existsSync(jsonlPath)) continue;
+      candidates.push({ key, sessionId, updatedAt: m.updatedAt, jsonlPath, origin: m.origin?.label || '' });
+    }
+    candidates.sort((a, b) => b.updatedAt - a.updatedAt);
+
+    const results = [];
+    for (const c of candidates.slice(0, maxSessions)) {
+      try {
+        const content = fs.readFileSync(c.jsonlPath, 'utf-8');
+        const lines = content.split('\n').filter(l => l.trim());
+
+        // 從尾端找最近的 user 訊息
+        const userMsgs = [];
+        for (let i = lines.length - 1; i >= 0 && userMsgs.length < maxMsgs; i--) {
+          try {
+            const entry = JSON.parse(lines[i]);
+            if (entry.type !== 'message') continue;
+            const msg = entry.message;
+            if (!msg || msg.role !== 'user') continue;
+
+            let text = msg.content;
+            if (Array.isArray(text)) {
+              text = text.filter(p => p.type === 'text').map(p => p.text).join(' ');
+            }
+            if (typeof text !== 'string') continue;
+
+            // 移除系統 metadata
+            if (text.includes('Conversation info')) {
+              const parts = text.split('\n\n');
+              text = parts[parts.length - 1];
+            }
+            // 移除 "System:" 前綴的系統通知
+            if (text.startsWith('System:')) continue;
+            text = text.trim();
+            if (!text || text.length < 3) continue;
+
+            userMsgs.unshift({ text: text.substring(0, 200), timestamp: entry.timestamp });
+          } catch { }
+        }
+
+        results.push({
+          key: c.key,
+          origin: c.origin,
+          updatedAt: new Date(c.updatedAt).toISOString(),
+          messages: userMsgs
+        });
+      } catch { }
+    }
+    return results;
+  } catch {
+    return [];
+  }
+}
+
+// 計算過去 N 天的 token 用量趨勢
+function parseTokenTrend(days = 7) {
+  const sessionsFile = path.join(OPENCLAW_DIR, 'agents', 'main', 'sessions', 'sessions.json');
+  try {
+    const raw = fs.readFileSync(sessionsFile, 'utf-8');
+    const data = JSON.parse(raw);
+
+    // 按天彙總 token
+    const dayMap = {};
+    for (const [key, meta] of Object.entries(data)) {
+      const ts = meta.updatedAt;
+      if (!ts || ts === 0) continue;
+      const day = new Date(ts).toISOString().substring(0, 10);
+      if (!dayMap[day]) dayMap[day] = { totalTokens: 0, inputTokens: 0, outputTokens: 0, sessions: 0 };
+      dayMap[day].totalTokens += (meta.totalTokens || 0);
+      dayMap[day].inputTokens += (meta.inputTokens || 0);
+      dayMap[day].outputTokens += (meta.outputTokens || 0);
+      dayMap[day].sessions += 1;
+    }
+
+    // 產生最近 N 天的資料（含無活動的天數）
+    const result = [];
+    const now = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const day = d.toISOString().substring(0, 10);
+      result.push({
+        date: day,
+        totalTokens: dayMap[day]?.totalTokens || 0,
+        inputTokens: dayMap[day]?.inputTokens || 0,
+        outputTokens: dayMap[day]?.outputTokens || 0,
+        sessions: dayMap[day]?.sessions || 0
+      });
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}
+
 function getOpenClawDir() {
   return OPENCLAW_DIR;
 }
@@ -471,7 +582,8 @@ module.exports = {
   parseKanban, parseSessionState, parseIdentity, parseMemory,
   parseSkills, parseCronJobs, parseConfig, parseStability,
   readRecentLogs, parseSingleLogLine, parseDailyLogs,
-  parseRecentSessions,
+  parseRecentSessions, parseSessionSummaries, parseTokenTrend,
   getOpenClawDir, getWorkspaceDirPath
 };
+
 
