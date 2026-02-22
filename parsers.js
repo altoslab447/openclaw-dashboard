@@ -570,6 +570,87 @@ function parseTokenTrend(days = 7) {
   }
 }
 
+// 判斷龍蝦活動狀態
+function parseAgentStatus() {
+  const sessionsDir = path.join(OPENCLAW_DIR, 'agents', 'main', 'sessions');
+  const sessionsFile = path.join(sessionsDir, 'sessions.json');
+  const now = Date.now();
+
+  let status = 'sleeping';
+  let lastActivityMs = 0;
+  let activeModel = '';
+  let activeSession = '';
+  let lastAction = '';
+  let activeSessionId = '';
+
+  // 從 sessions.json 找最近活動
+  try {
+    const raw = fs.readFileSync(sessionsFile, 'utf-8');
+    const data = JSON.parse(raw);
+    for (const [key, meta] of Object.entries(data)) {
+      const ts = meta.updatedAt || 0;
+      if (ts > lastActivityMs) {
+        lastActivityMs = ts;
+        activeModel = meta.model || '';
+        activeSession = meta.origin?.label || key;
+        activeSessionId = meta.sessionId || '';
+      }
+    }
+  } catch { }
+
+  const ageMs = now - lastActivityMs;
+  if (ageMs < 600000) status = 'working';
+  else if (ageMs < 3600000) status = 'standby';
+  else status = 'sleeping';
+
+  // 從最近 session 的 JSONL 提取最後用戶訊息作為活動摘要
+  if (activeSessionId) {
+    try {
+      const jsonlPath = path.join(sessionsDir, `${activeSessionId}.jsonl`);
+      const content = fs.readFileSync(jsonlPath, 'utf-8');
+      const lines = content.split('\n').filter(l => l.trim());
+      for (let i = lines.length - 1; i >= Math.max(0, lines.length - 30); i--) {
+        try {
+          const entry = JSON.parse(lines[i]);
+          if (entry.type !== 'message') continue;
+          const msg = entry.message;
+          if (!msg) continue;
+
+          let text = msg.content;
+          if (Array.isArray(text)) {
+            text = text.filter(p => p.type === 'text').map(p => p.text).join(' ');
+          }
+          if (typeof text !== 'string' || !text.trim()) continue;
+          if (text.includes('Conversation info')) {
+            const parts = text.split('\n\n');
+            text = parts[parts.length - 1];
+          }
+          if (text.startsWith('System:')) continue;
+          text = text.trim();
+          if (text.length < 3) continue;
+
+          if (msg.role === 'user') {
+            lastAction = `💬 ${text.substring(0, 80)}`;
+          } else if (msg.role === 'assistant') {
+            lastAction = `🤖 ${text.substring(0, 80)}`;
+          }
+          if (lastAction) break;
+        } catch { }
+      }
+    } catch { }
+  }
+
+  return {
+    status,
+    lastActivityMs,
+    lastActivityAt: lastActivityMs ? new Date(lastActivityMs).toISOString() : null,
+    ageMs,
+    activeModel,
+    activeSession,
+    lastAction
+  };
+}
+
 function getOpenClawDir() {
   return OPENCLAW_DIR;
 }
@@ -583,7 +664,9 @@ module.exports = {
   parseSkills, parseCronJobs, parseConfig, parseStability,
   readRecentLogs, parseSingleLogLine, parseDailyLogs,
   parseRecentSessions, parseSessionSummaries, parseTokenTrend,
+  parseAgentStatus,
   getOpenClawDir, getWorkspaceDirPath
 };
+
 
 

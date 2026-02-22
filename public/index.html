@@ -5,24 +5,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OpenClaw 任務指揮中心 🦞</title>
-  <meta name="description" content="OpenClaw 代理人看板 — 即時監控你的 AI Agent 任務、技能與系統狀態">
+  <meta name="description" content="OpenClaw — 即時監控你的 AI Agent 活動狀態與學習進展">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Press+Start+2P&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <!-- 頂部導航 -->
+  <!-- Header -->
   <header class="header">
     <div class="header-left">
-      <span class="logo-emoji">🦞</span>
-      <div>
-        <h1 class="header-title">OpenClaw 任務指揮中心</h1>
-        <p class="header-sub">代理人儀表板 · 即時監控</p>
-      </div>
+      <img src="lobster.png" alt="🦞" class="header-logo">
+      <h1 class="header-title">OpenClaw</h1>
     </div>
     <div class="header-right">
       <div class="ws-indicator" id="wsIndicator">
@@ -30,179 +27,68 @@
         <span class="ws-text">連線中...</span>
       </div>
       <div class="clock" id="clock"></div>
-      <button class="refresh-btn" id="refreshBtn" title="手動刷新">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-        </svg>
-      </button>
     </div>
   </header>
 
   <main class="dashboard">
-    <!-- 代理人身份卡 -->
-    <section class="panel agent-panel" id="agentPanel">
-      <div class="panel-header">
-        <h2>🤖 代理人身份</h2>
-        <span class="status-badge" id="agentStatus">載入中...</span>
+
+    <!-- 1️⃣ 龍蝦狀態 -->
+    <section class="section hero-section" id="heroSection">
+      <div class="lobster-stage">
+        <div class="ring-glow" id="ringGlow"></div>
+        <img src="lobster.png" alt="Mr. 蝦蝦" class="lobster-sprite" id="lobsterSprite">
       </div>
-      <div class="agent-card" id="agentCard">
-        <div class="agent-avatar" id="agentEmoji">🦞</div>
-        <div class="agent-info">
-          <h3 class="agent-name" id="agentName">—</h3>
-          <p class="agent-role" id="agentRole">—</p>
-          <p class="agent-vibe" id="agentVibe">—</p>
-        </div>
-        <div class="agent-details">
-          <div class="detail-row">
-            <span class="detail-label">💰 錢包</span>
-            <span class="detail-value mono" id="agentWallet">—</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">📡 ACP 狀態</span>
-            <span class="detail-value" id="agentAcp">—</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">⚡ 服務項目</span>
-            <span class="detail-value" id="agentService">—</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">🧠 核心技能</span>
-            <span class="detail-value" id="agentCoreSkill">—</span>
-          </div>
-        </div>
-        <div class="soul-truths" id="soulTruths"></div>
+      <div class="hero-text">
+        <div class="hero-status" id="heroStatus">載入中...</div>
+        <div class="hero-subtitle" id="heroSubtitle"></div>
+      </div>
+      <div class="hero-action" id="heroAction"></div>
+    </section>
+
+    <!-- 2️⃣ 龍蝦自我介紹 -->
+    <section class="section intro-section" id="introSection">
+      <div class="section-header">
+        <h2>🦞 認識 Mr. 蝦蝦</h2>
+      </div>
+      <div class="intro-content" id="introContent">
+        <div class="empty-state">載入中...</div>
       </div>
     </section>
 
-    <!-- 會話活動 -->
-    <section class="panel sessions-panel" id="sessionsPanel">
-      <div class="panel-header">
-        <h2>📡 會話活動</h2>
-        <span class="column-count" id="sessionCount">0</span>
+    <!-- 3️⃣ Token 消耗 -->
+    <section class="section" id="tokenSection">
+      <div class="section-header">
+        <h2>📊 Token 消耗</h2>
+        <span class="section-badge" id="tokenTotal">—</span>
       </div>
-      <div class="sessions-list" id="sessionsList"></div>
+      <div class="token-list" id="tokenList"></div>
+      <div class="token-trend-mini" id="tokenTrendMini"></div>
     </section>
 
-    <!-- Token 趨勢圖 + 對話摘要 -->
-    <div class="two-col-row">
-      <section class="panel trend-panel" id="trendPanel">
-        <div class="panel-header">
-          <h2>📊 Token 用量趨勢</h2>
-          <span class="meta-text" id="trendTotal">7 天</span>
-        </div>
-        <div class="trend-chart" id="trendChart"></div>
-        <div class="trend-stats" id="trendStats"></div>
-      </section>
-
-      <section class="panel summaries-panel" id="summariesPanel">
-        <div class="panel-header">
-          <h2>💬 最近對話</h2>
-          <span class="column-count" id="summaryCount">0</span>
-        </div>
-        <div class="summaries-list" id="summariesList"></div>
-      </section>
-    </div>
-
-    <!-- 任務看板 (可選，KANBAN.md 存在時才顯示) -->
-    <section class="panel kanban-panel" id="kanbanPanel">
-      <div class="panel-header">
-        <h2>📋 任務看板</h2>
-        <span class="meta-text" id="kanbanUpdated">—</span>
+    <!-- 4️⃣ 學習進展 -->
+    <section class="section" id="learningSection">
+      <div class="section-header">
+        <h2>🧠 學習紀錄</h2>
+        <span class="section-badge" id="learningCount">—</span>
       </div>
-      <div class="kanban-board">
-        <div class="kanban-column active-col">
-          <div class="column-header">
-            <span class="column-dot dot-red"></span>
-            <h3>🔴 進行中</h3>
-            <span class="column-count" id="activeCount">0</span>
-          </div>
-          <div class="column-body" id="activeItems"></div>
-        </div>
-        <div class="kanban-column backlog-col">
-          <div class="column-header">
-            <span class="column-dot dot-yellow"></span>
-            <h3>🟡 規劃中</h3>
-            <span class="column-count" id="backlogCount">0</span>
-          </div>
-          <div class="column-body" id="backlogItems"></div>
-        </div>
-        <div class="kanban-column completed-col">
-          <div class="column-header">
-            <span class="column-dot dot-green"></span>
-            <h3>🟢 已完成</h3>
-            <span class="column-count" id="completedCount">0</span>
-          </div>
-          <div class="column-body" id="completedItems"></div>
-        </div>
-      </div>
+      <div class="learning-timeline" id="learningTimeline"></div>
     </section>
 
-    <!-- 每日活動紀錄 -->
-    <section class="panel daily-panel" id="dailyPanel">
-      <div class="panel-header">
-        <h2>📅 每日活動紀錄</h2>
-        <span class="column-count" id="dailyLogCount">0 天</span>
-      </div>
-      <div class="daily-timeline" id="dailyTimeline"></div>
-    </section>
-
-    <!-- 技能 + 排程任務 -->
-    <div class="two-col-row">
-      <section class="panel skills-panel" id="skillsPanel">
-        <div class="panel-header">
-          <h2>🛠 已安裝技能</h2>
-          <span class="column-count" id="skillCount">0</span>
-        </div>
-        <div class="skills-grid" id="skillsGrid"></div>
-      </section>
-
-      <section class="panel cron-panel" id="cronPanel">
-        <div class="panel-header">
-          <h2>⏰ 排程任務</h2>
-          <span class="column-count" id="cronCount">0</span>
-        </div>
-        <div class="cron-list" id="cronList"></div>
-      </section>
-    </div>
-
-    <!-- 即時日誌 -->
-    <section class="panel log-panel" id="logPanel">
-      <div class="panel-header">
+    <!-- 5️⃣ 即時日誌（可收起） -->
+    <section class="section log-section collapsed" id="logSection">
+      <div class="section-header clickable" id="logToggle">
         <h2>📜 即時日誌</h2>
-        <div class="log-controls">
-          <label class="log-toggle">
-            <input type="checkbox" id="autoScrollToggle" checked>
-            <span>自動捲動</span>
-          </label>
-          <button class="log-clear-btn" id="clearLogsBtn">清除</button>
-        </div>
+        <span class="expand-icon" id="expandIcon">▼</span>
       </div>
       <div class="log-container" id="logContainer">
         <div class="log-empty">等待日誌資料...</div>
       </div>
     </section>
 
-    <!-- 系統設定 + 記憶 -->
-    <div class="two-col-row">
-      <section class="panel config-panel" id="configPanel">
-        <div class="panel-header">
-          <h2>⚙️ 系統設定</h2>
-        </div>
-        <div class="config-content" id="configContent"></div>
-      </section>
-
-      <section class="panel memory-panel" id="memoryPanel">
-        <div class="panel-header">
-          <h2>🧠 記憶與進化計畫</h2>
-        </div>
-        <div class="memory-content" id="memoryContent"></div>
-      </section>
-    </div>
   </main>
 
   <footer class="footer">
-    <p>OpenClaw 任務指揮中心 v3.0 — 開源專案 🦞</p>
+    <p>OpenClaw 任務指揮中心 v4.0 🦞</p>
   </footer>
 
   <script src="app.js"></script>

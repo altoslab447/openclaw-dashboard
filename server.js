@@ -10,6 +10,7 @@ const {
     parseSkills, parseCronJobs, parseConfig, parseStability,
     readRecentLogs, parseSingleLogLine, parseDailyLogs,
     parseRecentSessions, parseSessionSummaries, parseTokenTrend,
+    parseAgentStatus,
     getOpenClawDir, getWorkspaceDirPath
 } = require('./parsers');
 
@@ -68,6 +69,10 @@ app.get('/api/token-trend', (req, res) => {
     res.json(parseTokenTrend(days));
 });
 
+app.get('/api/status', (req, res) => {
+    res.json(parseAgentStatus());
+});
+
 app.get('/api/all', (req, res) => {
     res.json({
         agent: { identity: parseIdentity(), session: parseSessionState() },
@@ -81,6 +86,8 @@ app.get('/api/all', (req, res) => {
         sessions: parseRecentSessions(15),
         summaries: parseSessionSummaries(5, 5),
         tokenTrend: parseTokenTrend(7),
+        agentStatus: parseAgentStatus(),
+        dailyLogs: parseDailyLogs(7),
         timestamp: new Date().toISOString()
     });
 });

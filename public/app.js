@@ -1,10 +1,10 @@
-// ===== OpenClaw 任務指揮中心 — 前端邏輯 v2 =====
+// ===== OpenClaw 任務指揮中心 v4 =====
 
 const API_BASE = '';
 let ws = null;
 let autoScroll = true;
 let logCount = 0;
-const MAX_LOG_LINES = 500;
+const MAX_LOG_LINES = 300;
 
 // ===== 時鐘 =====
 function updateClock() {
@@ -15,681 +15,257 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ===== WebSocket 連線 =====
-function connectWebSocket() {
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${location.host}`;
-
-    ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-        updateWsIndicator(true);
-        console.log('🦞 WebSocket 已連線');
-    };
-
-    ws.onclose = () => {
-        updateWsIndicator(false);
-        console.log('📡 WebSocket 已斷線，3 秒後重連...');
-        setTimeout(connectWebSocket, 3000);
-    };
-
-    ws.onerror = () => {
-        updateWsIndicator(false);
-    };
-
-    ws.onmessage = (event) => {
-        try {
-            const msg = JSON.parse(event.data);
-            handleWsMessage(msg);
-        } catch { }
-    };
+// ===== 工具 =====
+function esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function updateWsIndicator(connected) {
-    const el = document.getElementById('wsIndicator');
-    const textEl = el.querySelector('.ws-text');
-    if (connected) {
-        el.classList.add('connected');
-        textEl.textContent = '即時連線';
-    } else {
-        el.classList.remove('connected');
-        textEl.textContent = '重連中...';
-    }
+function timeAgo(isoStr) {
+    if (!isoStr) return '—';
+    const diff = Date.now() - new Date(isoStr).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return '剛剛';
+    if (min < 60) return `${min} 分鐘前`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr} 小時前`;
+    return `${Math.floor(hr / 24)} 天前`;
 }
 
-function handleWsMessage(msg) {
-    switch (msg.type) {
-        case 'log':
-            appendLogEntry(msg.data);
-            break;
-        case 'data-changed':
-            console.log(`🔄 檔案變更: ${msg.data.file}`);
-            refresh(); // 檔案變更時自動刷新所有資料
-            break;
-        case 'connected':
-            appendLogEntry({ timestamp: new Date().toISOString(), tag: 'system', message: msg.data.message });
-            break;
-    }
+function fmtTokens(n) {
+    if (!n) return '0';
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+    if (n >= 1000) return `${(n / 1000).toFixed(0)}K`;
+    return `${n}`;
 }
 
-// ===== 日誌面板 =====
-function appendLogEntry(entry) {
-    const container = document.getElementById('logContainer');
-
-    // 移除空狀態提示
-    const emptyEl = container.querySelector('.log-empty');
-    if (emptyEl) emptyEl.remove();
-
-    const div = document.createElement('div');
-    div.className = 'log-entry log-new-indicator';
-
-    const timeStr = entry.timestamp ? formatLogTime(entry.timestamp) : '';
-    const tagClass = getTagClass(entry.tag);
-    const isError = entry.message && (entry.message.includes('error') || entry.message.includes('Error') || entry.message.includes('❌'));
-
-    div.innerHTML = `
-    <span class="log-time">${escHtml(timeStr)}</span>
-    <span class="log-tag ${tagClass}">${escHtml(entry.tag || 'info')}</span>
-    <span class="log-msg${isError ? ' error-msg' : ''}">${escHtml(entry.message || '')}</span>
-  `;
-
-    container.appendChild(div);
-    logCount++;
-
-    // 限制日誌行數
-    while (logCount > MAX_LOG_LINES) {
-        const first = container.querySelector('.log-entry');
-        if (first) { first.remove(); logCount--; }
-        else break;
-    }
-
-    // 自動捲動
-    if (autoScroll) {
-        container.scrollTop = container.scrollHeight;
-    }
-}
-
-function formatLogTime(ts) {
-    try {
-        const d = new Date(ts);
-        return d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-    } catch {
-        return ts.substring(11, 19);
-    }
-}
-
-function getTagClass(tag) {
-    if (!tag) return 'system';
-    const t = tag.toLowerCase();
-    if (t.includes('gateway')) return 'gateway';
-    if (t.includes('agent')) return 'agent';
-    if (t.includes('ws')) return 'ws';
-    if (t.includes('heartbeat')) return 'heartbeat';
-    if (t.includes('error') || t.includes('err')) return 'error';
-    return 'system';
-}
-
-async function loadInitialLogs() {
-    try {
-        const res = await fetch(`${API_BASE}/api/logs?count=50`);
-        if (!res.ok) return;
-        const logs = await res.json();
-        logs.forEach(entry => appendLogEntry(entry));
-    } catch { }
-}
-
-// ===== 資料載入 =====
+// ===== API =====
 async function fetchAll() {
     try {
         const res = await fetch(`${API_BASE}/api/all`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
     } catch (err) {
-        console.error('載入資料失敗:', err);
+        console.error('API error:', err);
         return null;
     }
 }
 
-// ===== 渲染：代理人身份 =====
-function renderAgent(data) {
-    if (!data) return;
-    const { identity, session } = data;
+// ===== WebSocket =====
+function connectWS() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}`);
+    const ind = document.getElementById('wsIndicator');
 
-    document.getElementById('agentEmoji').textContent = identity.emoji || '🤖';
-    document.getElementById('agentName').textContent = identity.name || '未知代理人';
-    document.getElementById('agentRole').textContent = identity.role || '';
-    document.getElementById('agentVibe').textContent = identity.vibe || '';
-    document.getElementById('agentCoreSkill').textContent = identity.coreSkill || '';
-
-    const wallet = session.walletAddress || '—';
-    const walletEl = document.getElementById('agentWallet');
-    walletEl.textContent = wallet.length > 20 ? wallet.substring(0, 8) + '...' + wallet.substring(wallet.length - 6) : wallet;
-    walletEl.title = wallet;
-
-    document.getElementById('agentAcp').textContent = session.acpStatus || '—';
-    document.getElementById('agentService').textContent = session.serviceItem || '—';
-
-    const statusBadge = document.getElementById('agentStatus');
-    const acp = session.acpStatus || '';
-    const isOnline = acp.includes('已上線') || acp.includes('Open');
-    statusBadge.textContent = isOnline ? '在線' : '離線';
-    statusBadge.className = `status-badge ${isOnline ? 'online' : 'offline'}`;
-
-    const truthsEl = document.getElementById('soulTruths');
-    truthsEl.innerHTML = '';
-    if (identity.coreTruths) {
-        identity.coreTruths.forEach(t => {
-            const tag = document.createElement('span');
-            tag.className = 'soul-tag';
-            tag.innerHTML = `<strong>${escHtml(t.key)}</strong> ${escHtml(t.value)}`;
-            truthsEl.appendChild(tag);
-        });
-    }
+    ws.onopen = () => {
+        ind.className = 'ws-indicator';
+        ind.querySelector('.ws-text').textContent = '即時連線';
+    };
+    ws.onclose = () => {
+        ind.className = 'ws-indicator offline';
+        ind.querySelector('.ws-text').textContent = '已斷線';
+        setTimeout(connectWS, 3000);
+    };
+    ws.onmessage = (e) => {
+        try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'log-line') appendLog(msg.data);
+            else if (msg.type === 'data-changed') refresh();
+        } catch { }
+    };
 }
+connectWS();
 
-
-
-
-function renderColumn(containerId, items) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '';
-    if (!items || items.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>暫無項目</div>';
-        return;
-    }
-    items.forEach((item, i) => {
-        const card = document.createElement('div');
-        card.className = `kanban-card${item.done ? ' done' : ''}`;
-
-        let text = item.text;
-        const tagMatch = text.match(/【(.+?)】/);
-        let tagHtml = '';
-        if (tagMatch) {
-            tagHtml = `<span class="card-tag">${escHtml(tagMatch[1])}</span>`;
-            text = text.replace(/【.+?】/, '').trim();
-        }
-        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        text = text.replace(/^[：:]\s*/, '');
-        card.innerHTML = `${tagHtml}${text}`;
-        container.appendChild(card);
-    });
-}
-
-// ===== 渲染：已安裝技能 =====
-function renderSkills(data) {
-    if (!data) return;
-    const grid = document.getElementById('skillsGrid');
-    grid.innerHTML = '';
-    document.getElementById('skillCount').textContent = data.length;
-    if (data.length === 0) {
-        grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🔧</div>尚未安裝技能</div>';
-        return;
-    }
-    const icons = { '1password': '🔐', 'coding-agent': '💻', 'openclaw-acp': '🤖', 'summarize': '📝', 'yahoo-finance': '📈' };
-    data.forEach(skill => {
-        const card = document.createElement('div');
-        card.className = 'skill-card';
-        const icon = icons[skill.name] || '🛠';
-        const version = skill.version ? `v${skill.version}` : '';
-        const type = skill.type === 'directory' ? '本地套件' : '連結';
-        card.innerHTML = `
-      <div class="skill-icon">${icon}</div>
-      <div class="skill-name">${escHtml(skill.name)}</div>
-      <div class="skill-type">${escHtml(type)}${version ? ' · ' + escHtml(version) : ''}</div>
-      ${skill.description ? `<div class="skill-desc">${escHtml(skill.description)}</div>` : ''}
-    `;
-        grid.appendChild(card);
-    });
-}
-
-// ===== 渲染：排程任務 =====
-function renderCron(data) {
-    if (!data) return;
-    const list = document.getElementById('cronList');
-    list.innerHTML = '';
-    document.getElementById('cronCount').textContent = data.length;
-    if (data.length === 0) {
-        list.innerHTML = '<div class="empty-state"><div class="empty-icon">⏰</div>暫無排程任務</div>';
-        return;
-    }
-    data.forEach(job => {
-        const card = document.createElement('div');
-        card.className = 'cron-card';
-        const status = !job.enabled ? 'disabled' : (job.state.lastStatus === 'ok' ? 'ok' : 'error');
-        const statusIcon = status === 'ok' ? '✅' : status === 'error' ? '❌' : '⏸️';
-        const statusLabel = status === 'ok' ? '正常' : status === 'error' ? '錯誤' : '已停用';
-
-        let scheduleText = '';
-        if (job.schedule) {
-            if (job.schedule.kind === 'cron') {
-                scheduleText = `cron: ${job.schedule.expr}`;
-                if (job.schedule.tz) scheduleText += ` (${job.schedule.tz})`;
-            } else if (job.schedule.kind === 'every') {
-                const hrs = Math.round(job.schedule.everyMs / 3600000);
-                scheduleText = `每 ${hrs} 小時`;
-            }
-        }
-
-        const lastRun = job.state.lastRunAt ? formatTime(job.state.lastRunAt) : '—';
-        const nextRun = job.state.nextRunAt ? formatTime(job.state.nextRunAt) : '—';
-        const duration = job.state.lastDuration ? `${(job.state.lastDuration / 1000).toFixed(1)}秒` : '';
-
-        card.innerHTML = `
-      <div class="cron-status-icon ${status}">${statusIcon}</div>
-      <div class="cron-info">
-        <h4>${escHtml(job.name)}</h4>
-        <div class="cron-schedule">${escHtml(scheduleText)}</div>
-      </div>
-      <div class="cron-meta">
-        <span class="cron-badge ${status}">${statusLabel}</span>
-        <div class="cron-time">上次: ${escHtml(lastRun)}${duration ? ' · ' + duration : ''}</div>
-        ${nextRun !== '—' ? `<div class="cron-time">下次: ${escHtml(nextRun)}</div>` : ''}
-      </div>
-      ${job.state.lastError ? `<div class="cron-error-msg">⚠️ ${escHtml(job.state.lastError)}</div>` : ''}
-    `;
-        list.appendChild(card);
-    });
-}
-
-// ===== 渲染：系統設定 =====
-function renderConfig(data) {
-    if (!data) return;
-    const content = document.getElementById('configContent');
-    content.innerHTML = '';
-
-    const gw = data.gateway || {};
-    content.appendChild(createConfigSection('🌐 閘道器', [
-        ['連接埠', gw.port], ['模式', gw.mode], ['綁定', gw.bind], ['Tailscale', gw.tailscale], ['版本', data.version]
-    ]));
-
-    const modelsSection = document.createElement('div');
-    modelsSection.className = 'config-section';
-    modelsSection.innerHTML = `<h4>🧠 模型配置</h4>`;
-
-    const primaryRow = document.createElement('div');
-    primaryRow.className = 'config-row';
-    primaryRow.innerHTML = `<span class="config-key">主模型</span><span class="model-tag primary">${escHtml(data.primaryModel || '—')}</span>`;
-    modelsSection.appendChild(primaryRow);
-
-    if (data.activeModels && data.activeModels.length > 0) {
-        const modelsDiv = document.createElement('div');
-        modelsDiv.style.cssText = 'margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px;';
-        data.activeModels.forEach(m => {
-            const tag = document.createElement('span');
-            tag.className = 'model-tag';
-            tag.textContent = m;
-            modelsDiv.appendChild(tag);
-        });
-        modelsSection.appendChild(modelsDiv);
-    }
-
-    const concRow = document.createElement('div');
-    concRow.className = 'config-row';
-    concRow.style.marginTop = '8px';
-    concRow.innerHTML = `<span class="config-key">並發數</span><span class="config-val">主: ${data.maxConcurrent || '—'} · 子代理: ${data.subagentMaxConcurrent || '—'} (${escHtml(data.subagentModel || '—')})</span>`;
-    modelsSection.appendChild(concRow);
-    content.appendChild(modelsSection);
-
-    const channelsSection = createConfigSection('📡 頻道與插件', []);
-    if (data.channels) {
-        Object.entries(data.channels).forEach(([name, ch]) => {
-            const row = document.createElement('div');
-            row.className = 'config-row';
-            row.innerHTML = `<span class="config-key">${escHtml(name)}</span><span class="config-val">${ch.enabled ? '✅ 已啟用' : '❌ 已停用'}${ch.streamMode ? ' · ' + ch.streamMode : ''}</span>`;
-            channelsSection.appendChild(row);
-        });
-    }
-    if (data.plugins) {
-        Object.entries(data.plugins).forEach(([name, pl]) => {
-            const row = document.createElement('div');
-            row.className = 'config-row';
-            row.innerHTML = `<span class="config-key">插件: ${escHtml(name)}</span><span class="config-val">${pl.enabled ? '✅' : '❌'}</span>`;
-            channelsSection.appendChild(row);
-        });
-    }
-    content.appendChild(channelsSection);
-}
-
-function createConfigSection(title, rows) {
-    const section = document.createElement('div');
-    section.className = 'config-section';
-    section.innerHTML = `<h4>${title}</h4>`;
-    rows.forEach(([key, val]) => {
-        const row = document.createElement('div');
-        row.className = 'config-row';
-        row.innerHTML = `<span class="config-key">${escHtml(key)}</span><span class="config-val">${escHtml(String(val ?? '—'))}</span>`;
-        section.appendChild(row);
-    });
-    return section;
-}
-
-// ===== 渲染：記憶與進化計畫 =====
-function renderMemory(data) {
-    if (!data) return;
-    const content = document.getElementById('memoryContent');
-    content.innerHTML = '';
-
-    if (data.plan) {
-        const planSection = document.createElement('div');
-        planSection.className = 'memory-section';
-        planSection.innerHTML = `<h4>🦞 ${escHtml(data.plan.title || '進化計畫')}</h4>`;
-
-        if (data.plan.goal) {
-            const goalDiv = document.createElement('div');
-            goalDiv.className = 'plan-goal';
-            goalDiv.textContent = `🎯 ${data.plan.goal}`;
-            planSection.appendChild(goalDiv);
-        }
-
-        if (data.plan.sections) {
-            data.plan.sections.forEach(sec => {
-                const h5 = document.createElement('div');
-                h5.className = 'memory-item';
-                h5.innerHTML = `<strong>${escHtml(sec.title)}</strong>`;
-                planSection.appendChild(h5);
-                sec.items.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'memory-item';
-                    div.style.paddingLeft = '12px';
-                    div.innerHTML = `→ ${formatMd(item)}`;
-                    planSection.appendChild(div);
-                });
-            });
-        }
-        content.appendChild(planSection);
-    }
-
-    if (data.entries && data.entries.length > 0) {
-        data.entries.forEach(sec => {
-            const section = document.createElement('div');
-            section.className = 'memory-section';
-            section.innerHTML = `<h4>📂 ${escHtml(sec.title)}</h4>`;
-            sec.items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'memory-item';
-                div.innerHTML = formatMd(item);
-                section.appendChild(div);
-            });
-            content.appendChild(section);
-        });
-    }
-}
-
-// ===== 工具函式 =====
-function escHtml(str) {
-    if (!str) return '';
+// ===== 日誌 =====
+function appendLog(line) {
+    const c = document.getElementById('logContainer');
+    if (logCount === 0) c.innerHTML = '';
     const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    div.className = 'log-line';
+    div.innerHTML = fmtLog(line);
+    c.appendChild(div);
+    logCount++;
+    while (c.children.length > MAX_LOG_LINES) c.removeChild(c.firstChild);
+    if (autoScroll) c.scrollTop = c.scrollHeight;
 }
 
-function formatMd(text) {
-    if (!text) return '';
-    let s = escHtml(text);
-    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    s = s.replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:0.9em;">$1</code>');
-    return s;
+function fmtLog(raw) {
+    if (!raw) return '';
+    let h = esc(raw);
+    h = h.replace(/^(\d{2}:\d{2}:\d{2})/, '<span class="log-time">$1</span>');
+    h = h.replace(/\b(ws)\b/gi, '<span class="log-tag ws">ws</span>');
+    h = h.replace(/\b(agent\/embedded)\b/g, '<span class="log-tag agent">agent/embedded</span>');
+    h = h.replace(/\b(browser\/chrome)\b/g, '<span class="log-tag browser">browser/chrome</span>');
+    h = h.replace(/\b(cron)\b/gi, '<span class="log-tag cron">cron</span>');
+    h = h.replace(/\b(error|fail|crash)\b/gi, '<span class="log-tag error">$1</span>');
+    return h;
 }
 
-function formatTime(iso) {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    const now = new Date();
-    const diffMs = now - d;
-    const diffMin = Math.floor(diffMs / 60000);
-    const diffHr = Math.floor(diffMin / 60);
-    const diffDay = Math.floor(diffHr / 24);
-
-    if (diffMin < 1) return '剛剛';
-    if (diffMin < 60) return `${diffMin} 分鐘前`;
-    if (diffHr < 24) return `${diffHr} 小時前`;
-    if (diffDay < 7) return `${diffDay} 天前`;
-    return d.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
-}
-
-// ===== 主刷新 =====
+// ===== 刷新 =====
 async function refresh() {
-    const btn = document.getElementById('refreshBtn');
-    btn.classList.add('spinning');
     const data = await fetchAll();
-    if (data) {
-        renderAgent(data.agent);
-        renderSessions(data.sessions);
-        renderTokenTrend(data.tokenTrend);
-        renderSummaries(data.summaries);
-        renderKanban(data.kanban);
-        renderSkills(data.skills);
-        renderCron(data.cron);
-        renderConfig(data.config);
-        renderMemory(data.memory);
-        renderDailyLogs(data.dailyLogs);
-    }
-    setTimeout(() => btn.classList.remove('spinning'), 800);
+    if (!data) return;
+    renderHero(data.agentStatus);
+    renderIntro(data.agent);
+    renderTokens(data.sessions, data.tokenTrend);
+    renderLearning(data.dailyLogs);
 }
 
-// ===== 渲染：會話活動 =====
-function renderSessions(data) {
-    if (!data) return;
-    const list = document.getElementById('sessionsList');
-    list.innerHTML = '';
-    document.getElementById('sessionCount').textContent = data.length;
+// ===== 1. Hero — 龍蝦狀態 =====
+function renderHero(s) {
+    if (!s) return;
+    const el = document.getElementById('heroSection');
+    el.className = `section hero-section ${s.status}`;
 
-    if (data.length === 0) {
-        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📡</div>暫無會話紀錄</div>';
-        return;
+    const labels = { working: '🟢 正在工作中...', standby: '🟡 待命中', sleeping: '💤 休眠中' };
+    document.getElementById('heroStatus').textContent = labels[s.status] || '—';
+    document.getElementById('heroSubtitle').textContent = s.lastActivityAt ? `最後活動：${timeAgo(s.lastActivityAt)}` : '';
+
+    const actionEl = document.getElementById('heroAction');
+    if (s.lastAction) {
+        actionEl.textContent = s.lastAction;
+        actionEl.style.display = '';
+    } else {
+        actionEl.style.display = 'none';
     }
+}
 
-    const now = Date.now();
-    const typeLabels = { dm: '私人對話', group: '群組對話', cron: '排程任務', subagent: '子代理', topic: '話題', other: '其他' };
+// ===== 2. 自我介紹 =====
+function renderIntro(agent) {
+    if (!agent) return;
+    const el = document.getElementById('introContent');
+    const id = agent.identity || {};
 
-    data.forEach(session => {
-        const card = document.createElement('div');
-        const ageMs = now - session.updatedAtMs;
-        const isActive = ageMs < 600000;     // 10 分鐘內
-        const isRecent = ageMs < 3600000;    // 1 小時內
-        const statusClass = isActive ? 'session-active' : isRecent ? 'session-recent' : 'session-stale';
-        card.className = `session-card ${statusClass}`;
+    const name = id.name || 'Mr. 蝦蝦';
+    const role = id.role || '';
+    const vibe = id.vibe || '';
+    const coreSkill = id.coreSkill || '';
 
-        // 取得展示名稱
-        let displayName = session.origin || typeLabels[session.type] || session.key;
-        if (session.type === 'cron') {
-            // cron 顯示 job ID 的前 8 碼
-            const cronMatch = session.key.match(/cron:([a-f0-9-]+)/);
-            displayName = cronMatch ? `Cron ${cronMatch[1].substring(0, 8)}` : '排程任務';
+    // coreTruths 特質標籤
+    const truths = id.coreTruths || [];
+    const traitClasses = { '執行至上': 'exec', '節省為本': 'save', '技術專業': 'tech', '幽默感': 'humor' };
+
+    el.innerHTML = `
+        <div class="intro-name">${esc(name)}</div>
+        ${role ? `<div class="intro-role">${esc(role)}</div>` : ''}
+        ${vibe ? `<div class="intro-bio">「${esc(vibe)}」</div>` : ''}
+        ${coreSkill ? `<div class="intro-bio">🎯 ${esc(coreSkill)}</div>` : ''}
+        ${truths.length > 0 ? `
+            <div class="intro-traits">
+                ${truths.map(t => {
+        const cls = traitClasses[t.key] || '';
+        return `<span class="intro-trait ${cls}" title="${esc(t.value)}">${esc(t.key)}</span>`;
+    }).join('')}
+            </div>
+        ` : ''}
+    `;
+}
+
+// ===== 3. Token 消耗 =====
+function renderTokens(sessions, trend) {
+    if (!sessions) return;
+    const list = document.getElementById('tokenList');
+    list.innerHTML = '';
+
+    const ranked = sessions.filter(s => s.totalTokens > 0).sort((a, b) => b.totalTokens - a.totalTokens);
+    const maxT = ranked[0]?.totalTokens || 1;
+    const total = ranked.reduce((sum, s) => sum + s.totalTokens, 0);
+
+    document.getElementById('tokenTotal').textContent = fmtTokens(total);
+
+    const labels = { dm: '主要對話', group: '群組對話', cron: '排程任務', subagent: '子代理', topic: '話題', other: '其他' };
+
+    ranked.forEach(s => {
+        let name = s.origin || labels[s.type] || s.key;
+        if (s.type === 'cron') {
+            const m = s.key.match(/cron:([a-f0-9-]+)/);
+            name = m ? `排程 ${m[1].substring(0, 8)}` : '排程';
         }
-        if (session.type === 'dm' && !session.origin) displayName = '主要對話';
+        if (s.type === 'dm' && !s.origin) name = '主要對話';
 
-        // Token 顯示
-        const tokenStr = session.totalTokens > 1000 ? `${(session.totalTokens / 1000).toFixed(0)}K` : `${session.totalTokens}`;
-
-        card.innerHTML = `
-      <div class="session-icon ${escHtml(session.type)}">${session.icon}</div>
-      <div class="session-info">
-        <h4>${escHtml(displayName)}${isActive ? ' <span style="color:var(--green);font-size:0.7rem;">● 活躍中</span>' : ''}</h4>
-        <div class="session-key">${escHtml(session.type === 'dm' ? 'agent:main:main' : session.key.length > 50 ? session.key.substring(0, 50) + '...' : session.key)}</div>
-      </div>
-      <div class="session-meta">
-        <div class="session-time">${formatTime(session.updatedAt)}</div>
-        <div class="session-badges">
-          ${session.channel ? `<span class="session-badge channel">${escHtml(session.channel)}</span>` : ''}
-          ${session.model ? `<span class="session-badge model">${escHtml(session.model)}</span>` : ''}
-          ${session.totalTokens > 0 ? `<span class="session-badge tokens">${tokenStr} tokens</span>` : ''}
-        </div>
-      </div>
-    `;
-        list.appendChild(card);
-    });
-}
-
-// ===== 渲染：任務看板 (條件式) =====
-function renderKanban(data) {
-    const panel = document.getElementById('kanbanPanel');
-    if (!data || (!data.active?.length && !data.backlog?.length && !data.completed?.length)) {
-        panel.style.display = 'none';
-        return;
-    }
-    panel.style.display = '';
-    renderColumn('activeItems', data.active);
-    renderColumn('backlogItems', data.backlog);
-    renderColumn('completedItems', data.completed);
-    document.getElementById('activeCount').textContent = data.active.length;
-    document.getElementById('backlogCount').textContent = data.backlog.length;
-    document.getElementById('completedCount').textContent = data.completed.length;
-    if (data.lastUpdated) {
-        document.getElementById('kanbanUpdated').textContent = `更新: ${data.lastUpdated}`;
-    }
-}
-// ===== 渲染：Token 趨勢圖 =====
-function renderTokenTrend(data) {
-    if (!data || data.length === 0) return;
-    const chart = document.getElementById('trendChart');
-    const stats = document.getElementById('trendStats');
-    chart.innerHTML = '';
-
-    const maxTokens = Math.max(...data.map(d => d.totalTokens), 1);
-    const totalTokens = data.reduce((sum, d) => sum + d.totalTokens, 0);
-    const totalSessions = data.reduce((sum, d) => sum + d.sessions, 0);
-    const avgPerDay = Math.round(totalTokens / data.length);
-
-    data.forEach(day => {
-        const wrap = document.createElement('div');
-        wrap.className = 'trend-bar-wrap';
-        const height = Math.max(2, (day.totalTokens / maxTokens) * 100);
-        const tokenK = day.totalTokens > 1000 ? `${(day.totalTokens / 1000).toFixed(0)}K` : `${day.totalTokens}`;
-        const label = day.date.substring(5); // MM-DD
-
-        wrap.innerHTML = `
-      <div class="trend-bar" style="height:${height}%">
-        <span class="trend-bar-value">${tokenK}</span>
-      </div>
-      <span class="trend-bar-label">${label}</span>
-    `;
-        chart.appendChild(wrap);
+        const pct = (s.totalTokens / maxT * 100).toFixed(0);
+        const row = document.createElement('div');
+        row.className = 'token-row';
+        row.innerHTML = `
+            <div class="token-row-header">
+                <span class="token-label">${s.icon} ${esc(name)}</span>
+                <span class="token-value">${fmtTokens(s.totalTokens)}</span>
+            </div>
+            <div class="token-bar-bg"><div class="token-bar-fill" style="width:${pct}%"></div></div>
+        `;
+        list.appendChild(row);
     });
 
-    const totalK = totalTokens > 1000000 ? `${(totalTokens / 1000000).toFixed(1)}M` : `${(totalTokens / 1000).toFixed(0)}K`;
-    const avgK = avgPerDay > 1000 ? `${(avgPerDay / 1000).toFixed(0)}K` : `${avgPerDay}`;
-    document.getElementById('trendTotal').textContent = `${totalK} / 7 天`;
-
-    stats.innerHTML = `
-    <div class="trend-stat"><span class="trend-stat-label">7 天總計</span><span class="trend-stat-value">${totalK}</span></div>
-    <div class="trend-stat"><span class="trend-stat-label">日均</span><span class="trend-stat-value">${avgK}</span></div>
-    <div class="trend-stat"><span class="trend-stat-label">會話數</span><span class="trend-stat-value">${totalSessions}</span></div>
-  `;
-}
-
-// ===== 渲染：對話摘要 =====
-function renderSummaries(data) {
-    if (!data) return;
-    const list = document.getElementById('summariesList');
-    list.innerHTML = '';
-    document.getElementById('summaryCount').textContent = data.length;
-
-    if (data.length === 0) {
-        list.innerHTML = '<div class="empty-state"><div class="empty-icon">💬</div>暫無對話紀錄</div>';
-        return;
-    }
-
-    data.forEach(session => {
-        if (!session.messages || session.messages.length === 0) return;
-        const card = document.createElement('div');
-        card.className = 'summary-card';
-
-        const displayName = session.origin || session.key;
-        card.innerHTML = `
-      <div class="summary-header">
-        <span class="summary-origin">${escHtml(displayName)}</span>
-        <span class="summary-time">${formatTime(session.updatedAt)}</span>
-      </div>
-      ${session.messages.map(m => `<div class="summary-msg">${escHtml(m.text)}</div>`).join('')}
-    `;
-        list.appendChild(card);
-    });
-}
-
-function renderDailyLogs(data) {
-    if (!data) return;
-    const timeline = document.getElementById('dailyTimeline');
-    timeline.innerHTML = '';
-    document.getElementById('dailyLogCount').textContent = `${data.length} 天`;
-
-    if (data.length === 0) {
-        timeline.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div>暫無每日紀錄</div>';
-        return;
-    }
-
-    data.forEach((log, idx) => {
-        const card = document.createElement('div');
-        card.className = `daily-card${idx === 0 ? ' expanded' : ''}`;
-
-        const dateLabel = formatDateLabel(log.date);
-        const sectionCount = log.sections.reduce((sum, s) => sum + s.items.length, 0);
-
-        card.innerHTML = `
-      <div class="daily-card-header">
-        <div class="daily-date">
-          <span class="daily-date-badge">${escHtml(log.date)}</span>
-          <span class="daily-title">${escHtml(log.title)}${log.isArchive ? '<span class="daily-archive-tag">歸檔</span>' : ''}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:0.68rem;color:var(--text-muted);">${sectionCount} 筆紀錄 · ${dateLabel}</span>
-          <span class="daily-toggle">▼</span>
-        </div>
-      </div>
-      <div class="daily-card-body">
-        ${log.sections.map(sec => `
-          <div class="daily-section">
-            <div class="daily-section-title">${escHtml(sec.title)}</div>
-            ${sec.items.map(item => `<div class="daily-item">${formatMd(item)}</div>`).join('')}
-          </div>
-        `).join('')}
-      </div>
-    `;
-
-        // 點擊展開/收合
-        card.querySelector('.daily-card-header').addEventListener('click', () => {
-            card.classList.toggle('expanded');
+    // 迷你趨勢
+    if (trend?.length > 0) {
+        const mini = document.getElementById('tokenTrendMini');
+        mini.innerHTML = '';
+        const mx = Math.max(...trend.map(d => d.totalTokens), 1);
+        trend.forEach((d, i) => {
+            const bar = document.createElement('div');
+            bar.className = `mini-bar${i === trend.length - 1 ? ' today' : ''}`;
+            bar.style.height = `${Math.max(2, (d.totalTokens / mx) * 100)}%`;
+            bar.title = `${d.date.substring(5)}: ${fmtTokens(d.totalTokens)}`;
+            mini.appendChild(bar);
         });
+    }
+}
 
-        timeline.appendChild(card);
+// ===== 4. 學習進展 =====
+function renderLearning(logs) {
+    if (!logs) return;
+    const tl = document.getElementById('learningTimeline');
+    tl.innerHTML = '';
+    document.getElementById('learningCount').textContent = `${logs.length} 天`;
+
+    if (logs.length === 0) {
+        tl.innerHTML = '<div class="empty-state">暫無學習紀錄</div>';
+        return;
+    }
+
+    logs.forEach(log => {
+        const day = document.createElement('div');
+        day.className = 'learning-day';
+
+        const now = new Date();
+        const ld = new Date(log.date + 'T00:00:00');
+        const diff = Math.floor((now - ld) / 86400000);
+        let label = log.date;
+        if (diff === 0) label = `今天 · ${log.date}`;
+        else if (diff === 1) label = `昨天 · ${log.date}`;
+
+        day.innerHTML = `<div class="learning-date">${label}</div>`;
+
+        if (log.sections?.length > 0) {
+            log.sections.forEach(sec => {
+                if (sec.items?.length > 0) {
+                    sec.items.slice(0, 3).forEach(item => {
+                        const el = document.createElement('div');
+                        el.className = 'learning-item';
+                        el.textContent = item.length > 120 ? item.substring(0, 120) + '...' : item;
+                        day.appendChild(el);
+                    });
+                } else if (sec.title) {
+                    const el = document.createElement('div');
+                    el.className = 'learning-item';
+                    el.textContent = sec.title;
+                    day.appendChild(el);
+                }
+            });
+        } else {
+            const el = document.createElement('div');
+            el.className = 'learning-item';
+            el.textContent = log.title || '無詳細內容';
+            day.appendChild(el);
+        }
+
+        tl.appendChild(day);
     });
 }
 
-function formatDateLabel(dateStr) {
-    const d = new Date(dateStr + 'T00:00:00');
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const diffDays = Math.round((today - target) / 86400000);
-
-    if (diffDays === 0) return '今天';
-    if (diffDays === 1) return '昨天';
-    if (diffDays === 2) return '前天';
-    if (diffDays < 7) return `${diffDays} 天前`;
-    return d.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
-}
-
-// ===== 初始化 =====
-document.addEventListener('DOMContentLoaded', () => {
-    refresh();
-    loadInitialLogs();
-    connectWebSocket();
-
-    // 手動刷新按鈕
-    document.getElementById('refreshBtn').addEventListener('click', refresh);
-
-    // 自動捲動開關
-    document.getElementById('autoScrollToggle').addEventListener('change', (e) => {
-        autoScroll = e.target.checked;
-    });
-
-    // 清除日誌
-    document.getElementById('clearLogsBtn').addEventListener('click', () => {
-        const container = document.getElementById('logContainer');
-        container.innerHTML = '<div class="log-empty">日誌已清除</div>';
-        logCount = 0;
-    });
-
-    // 定期刷新 (作為 WebSocket 的備援)
-    setInterval(refresh, 60000);
+// ===== 日誌收起 =====
+document.getElementById('logToggle').addEventListener('click', () => {
+    document.getElementById('logSection').classList.toggle('collapsed');
 });
+
+// ===== 啟動 =====
+refresh();
