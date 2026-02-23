@@ -29,18 +29,19 @@
   --purple:     #a78bfa;
 
   /* Typography — nothing below 12px */
-  --fs-hero:   28px;   /* hero 大標題 */
-  --fs-title:  20px;   /* section 標題 */
-  --fs-sub:    16px;   /* 標準內文 */
+  --fs-hero:   24px;   /* hero 大標題 (Figma: text-2xl / h1) */
+  --fs-title:  20px;   /* section 標題 (Figma: text-xl / h2) */
+  --fs-sub:    16px;   /* 標準內文 (Figma: text-base) */
   --fs-small:  14px;   /* 次要說明文字 */
   --fs-meta:   12px;   /* 最小字：時間戳、badge */
 
-  --fw-bold:   700;
-  --fw-semi:   600;
-  --fw-med:    500;
+  --fw-bold:   500;    /* Figma: font-weight-medium */
+  --fw-semi:   500;    /* Figma: font-weight-medium */
+  --fw-med:    500;    /* Figma: font-weight-medium */
+  --fw-num:    600;    /* 數字/數值保留較重字重，維持可讀性 */
 
-  --radius:    16px;
-  --radius-sm: 10px;
+  --radius:    10px;   /* Figma: 0.625rem */
+  --radius-sm: 6px;
   --mono:      'JetBrains Mono', monospace;
   --sans:      'Inter', -apple-system, sans-serif;
   --ease:      all .22s ease;
@@ -83,7 +84,7 @@ body {
 .brand-name {
   font-size: var(--fs-title);
   font-weight: var(--fw-bold);
-  letter-spacing: -.02em;
+  letter-spacing: -.01em;
 }
 
 .header-right {
@@ -166,7 +167,7 @@ body {
 
 .stat-value {
   font-size: var(--fs-title);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-num);
   color: var(--txt);
   font-family: var(--mono);
   white-space: nowrap;
