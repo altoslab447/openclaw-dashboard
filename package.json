@@ -3,9 +3,14 @@
   "version": "2.0.0",
   "description": "OpenClaw 任務指揮中心 — 即時監控你的 AI Agent 🦞",
   "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "npm run build && node server.js",
+    "dev:backend": "node server.js",
+    "dev:frontend": "vite",
+    "dev": "concurrently \"node server.js\" \"vite --port 3457\"",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "keywords": [
     "openclaw",
@@ -23,8 +28,26 @@
   },
   "dependencies": {
     "chokidar": "^4.0.0",
+    "clsx": "2.1.1",
+    "concurrently": "^9.1.0",
     "cors": "^2.8.5",
+    "date-fns": "3.6.0",
     "express": "^4.21.0",
+    "lucide-react": "0.487.0",
+    "motion": "12.23.24",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "tailwind-merge": "3.2.0",
+    "tw-animate-css": "1.3.8",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.12",
+    "@types/react": "18.3.1",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "4.7.0",
+    "tailwindcss": "4.1.12",
+    "typescript": "5.7.3",
+    "vite": "6.3.5"
   }
 }

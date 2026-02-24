@@ -1,16 +1,22 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
-const http = require('http');
-const { WebSocketServer } = require('ws');
-const chokidar = require('chokidar');
+import express from 'express';
+import cors from 'cors';
+import { createRequire } from 'module';
+import path from 'path';
+import fs from 'fs';
+import http from 'http';
+import { WebSocketServer } from 'ws';
+import chokidar from 'chokidar';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+
 const {
     parseKanban, parseSessionState, parseIdentity, parseMemory,
     parseSkills, parseCronJobs, parseConfig, parseStability,
     readRecentLogs, parseSingleLogLine,
     getOpenClawDir, getWorkspaceDirPath
-} = require('./parsers');
+} = require('./parsers.cjs');
 
 const app = express();
 const PORT = process.env.PORT || 3456;
@@ -29,7 +35,20 @@ console.log(`📂 OpenClaw 目錄: ${OPENCLAW_DIR}`);
 console.log(`📂 工作區目錄: ${WORKSPACE_DIR}`);
 
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve React build (dist/) with SPA fallback
+const DIST_DIR = path.join(__dirname, 'dist');
+const DIST_EXISTS = fs.existsSync(DIST_DIR);
+
+if (DIST_EXISTS) {
+    app.use(express.static(DIST_DIR));
+} else {
+    // Fallback to legacy public/ if dist/ not built yet
+    const PUBLIC_DIR = path.join(__dirname, 'public');
+    if (fs.existsSync(PUBLIC_DIR)) {
+        app.use(express.static(PUBLIC_DIR));
+    }
+}
 
 // ===== REST API =====
 app.get('/api/agent', (req, res) => {
@@ -60,6 +79,15 @@ app.get('/api/all', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+
+// SPA fallback — serve index.html for all non-API routes
+if (DIST_EXISTS) {
+    app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+            res.sendFile(path.join(DIST_DIR, 'index.html'));
+        }
+    });
+}
 
 // ===== HTTP + WebSocket 伺服器 =====
 const server = http.createServer(app);
@@ -107,7 +135,6 @@ if (fs.existsSync(path.dirname(LOG_PATH))) {
         try {
             const stat = fs.statSync(LOG_PATH);
             if (stat.size > lastLogSize) {
-                // 讀取新增的部分
                 const fd = fs.openSync(LOG_PATH, 'r');
                 const buffer = Buffer.alloc(stat.size - lastLogSize);
                 fs.readSync(fd, buffer, 0, buffer.length, lastLogSize);
@@ -121,7 +148,6 @@ if (fs.existsSync(path.dirname(LOG_PATH))) {
                     broadcast('log', parsed);
                 });
             } else if (stat.size < lastLogSize) {
-                // 日誌被截斷（輪替），重設大小
                 broadcast('log', { timestamp: new Date().toISOString(), tag: 'system', message: '日誌已輪替', raw: '' });
             }
             lastLogSize = stat.size;
@@ -169,5 +195,11 @@ if (fs.existsSync(WORKSPACE_DIR)) {
 server.listen(PORT, () => {
     console.log(`\n🦞 OpenClaw 任務指揮中心已啟動`);
     console.log(`   🌐 http://localhost:${PORT}`);
-    console.log(`   📡 WebSocket ws://localhost:${PORT}\n`);
+    console.log(`   📡 WebSocket ws://localhost:${PORT}`);
+    if (!DIST_EXISTS) {
+        console.log(`\n   ⚠️  React build 尚未完成，執行 npm run build 生成前端。`);
+        console.log(`   💡 開發模式: npm run dev (後端 3456 + 前端 3457)\n`);
+    } else {
+        console.log();
+    }
 });
