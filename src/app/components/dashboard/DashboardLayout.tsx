@@ -185,6 +185,9 @@ export function DashboardLayout() {
         )}>
           <p>{t("footer.version")}</p>
           <p className="opacity-50 font-mono tracking-widest text-[10px]">{t("footer.credits")}</p>
+          <p className="font-mono text-[10px] opacity-40">
+            {t("footer.buildTime") || "Built"}: {__BUILD_TIME__}
+          </p>
         </footer>
       </motion.main>
     </div>
