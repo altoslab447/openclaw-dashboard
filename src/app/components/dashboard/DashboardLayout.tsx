@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { Header } from "./Header";
 import { AgentCard } from "./AgentCard";
-import { TaskBoard } from "./TaskBoard";
+
 import { SkillsGrid } from "./SkillsGrid";
 import { ScheduledTasks } from "./ScheduledTasks";
 import { LogViewer } from "./LogViewer";
@@ -93,15 +93,7 @@ export function DashboardLayout() {
           <AgentCard />
         </motion.section>
 
-        {/* Row 2: Task Board */}
-        <motion.section variants={itemVariants}>
-          <div className="flex items-center justify-between mb-4">
-            <SectionTitle color="bg-yellow-500">
-              {t("taskboard.title")}
-            </SectionTitle>
-          </div>
-          <TaskBoard />
-        </motion.section>
+
 
         {/* Row 3: Skills & Scheduled Tasks */}
         <motion.section variants={itemVariants} className="grid grid-cols-1 xl:grid-cols-3 gap-6">

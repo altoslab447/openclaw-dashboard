@@ -82,7 +82,7 @@ function TaskItem({ job }: { job: CronJob }) {
             "text-xs font-mono mt-0.5 truncate",
             theme === "dark" ? "text-slate-500" : "text-slate-400"
           )}>
-            {job.schedule}
+            {typeof job.schedule === 'string' ? job.schedule : job.schedule?.expr || JSON.stringify(job.schedule)}
             {job.sessionTarget && ` · ${job.sessionTarget}`}
           </p>
         </div>
