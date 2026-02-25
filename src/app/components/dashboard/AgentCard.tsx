@@ -15,7 +15,7 @@ export function AgentCard() {
   const name = identity?.name || session?.agentIdentity || t("agent.name");
   const vibe = identity?.vibe || t("agent.description");
   const emoji = identity?.emoji || "🦞";
-  const acpStatus = session?.acpStatus || "-";
+  const acpStatus = session?.acpStatus || (isOnline ? "Active" : "-");
   const wallet = session?.walletAddress
     ? session.walletAddress.slice(0, 6) + "…" + session.walletAddress.slice(-4)
     : "-";
