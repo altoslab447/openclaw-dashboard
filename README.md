@@ -1,8 +1,10 @@
-# 🦞 OpenClaw 任務指揮中心
+# 🦞 OpenClaw Mission Control (Dashboard)
 
-> 即時監控你的 OpenClaw AI Agent — 任務看板、技能、排程任務、系統狀態一目了然。
+> 即時監控你的 OpenClaw AI Agent — 任務看板、技能、排程任務、系統狀態一目了然。💅
 
 <div align="center">
+
+![OpenClaw Dashboard Preview](https://raw.githubusercontent.com/altoslab447/openclaw-dashboard/main/public/preview.png)
 
 **[English](#english)** · **[中文](#功能特色)**
 
@@ -19,7 +21,8 @@
 - ⚙️ **系統設定** — 模型配置、閘道器、頻道與插件一覽
 - 🧠 **記憶與計畫** — 長期記憶 + 進化計畫時間軸
 - 📜 **即時日誌** — WebSocket 即時串流 Gateway 日誌，終端機風格顯示
-- 🔄 **自動刷新** — 檔案變更時自動更新所有面板
+- 🔄 **多國語言** — 支援繁體中文與英文切換 🌐
+- ✨ **現代 UI** — 採用 React + Tailwind CSS + Framer Motion 打造的高科技感介面
 
 ## 快速開始
 
@@ -28,92 +31,56 @@
 - [Node.js](https://nodejs.org/) v18+
 - [OpenClaw](https://openclaw.ai/) 已安裝並初始化 (`~/.openclaw/` 目錄存在)
 
-### 安裝
+### 安裝與啟動
 
 ```bash
-git clone https://github.com/altoslab/openclaw-dashboard.git
+# 複製專案
+git clone https://github.com/altoslab447/openclaw-dashboard.git
 cd openclaw-dashboard
+
+# 安裝依賴
 npm install
+
+# 啟動開發伺服器
+npm run dev
 ```
 
-### 啟動
+打開瀏覽器訪問 **http://localhost:5173** (Vite 預設連接埠) 🚀
 
-```bash
-npm start
-```
+## 技術架構
 
-打開瀏覽器訪問 **http://localhost:3456** 🎉
+本專案採用現代前端技術棧：
 
-### 環境變數
+- **Frontend**: React 18, Vite, Tailwind CSS
+- **Animation**: Framer Motion
+- **Icons**: Lucide React
+- **Backend**: Express + WebSocket (Server-side parsing)
+- **Real-time**: Chokidar (File watching) + Socket.io
+
+## 配置環境變數
 
 | 變數 | 說明 | 預設值 |
 |---|---|---|
 | `OPENCLAW_HOME` | OpenClaw 資料目錄路徑 | `~/.openclaw` |
-| `PORT` | 伺服器連接埠 | `3456` |
+| `PORT` | 伺服器連接埠 (API/Server) | `3456` |
 
 ```bash
 # 自訂路徑範例
-OPENCLAW_HOME=/custom/path/.openclaw PORT=8080 npm start
+OPENCLAW_HOME=/custom/path/.openclaw PORT=3456 npm run dev
 ```
 
-## 技術架構
+## 資料來源
 
-```
-openclaw-dashboard/
-├── server.js          # Express + WebSocket 伺服器
-├── parsers.js         # Markdown/JSON 檔案解析器
-├── public/
-│   ├── index.html     # 儀表板介面
-│   ├── style.css      # 深色主題樣式
-│   └── app.js         # 前端邏輯 + WebSocket 客戶端
-├── .env.example       # 環境變數範例
-├── package.json
-├── LICENSE            # MIT
-└── README.md
-```
-
-### 資料來源
-
-Dashboard 直接讀取你本地的 OpenClaw 檔案（唯讀），不會修改任何資料：
+Dashboard 直接讀取你本地的 OpenClaw 檔案（唯讀）：
 
 | 檔案 | 用途 |
 |---|---|
 | `KANBAN.md` | 看板任務 |
-| `SESSION-STATE.md` | Agent 運行狀態 |
 | `IDENTITY.md` / `SOUL.md` | Agent 身份與個性 |
 | `MEMORY.md` | 長期記憶 |
-| `SOVEREIGN_PLAN.md` | 進化計畫 |
 | `cron/jobs.json` | 排程任務 |
 | `openclaw.json` | 系統設定 |
 | `logs/gateway.log` | 即時日誌 |
-
-## API 端點
-
-| 端點 | 說明 |
-|---|---|
-| `GET /api/agent` | 代理人身份 + 狀態 |
-| `GET /api/kanban` | 看板任務 |
-| `GET /api/skills` | 已安裝技能 |
-| `GET /api/cron` | 排程任務 |
-| `GET /api/memory` | 記憶與計畫 |
-| `GET /api/config` | 系統設定 |
-| `GET /api/logs?count=100` | 最近日誌 |
-| `GET /api/all` | 全部資料 |
-| `WebSocket ws://` | 即時日誌 + 檔案變更推送 |
-
-## 貢獻
-
-歡迎提交 Issue 或 Pull Request！
-
-1. Fork 此專案
-2. 建立你的 Feature Branch (`git checkout -b feature/amazing-feature`)
-3. 提交變更 (`git commit -m '新增超棒功能'`)
-4. 推送 (`git push origin feature/amazing-feature`)
-5. 開啟 Pull Request
-
-## 授權
-
-[MIT License](LICENSE)
 
 ---
 
@@ -123,36 +90,36 @@ Dashboard 直接讀取你本地的 OpenClaw 檔案（唯讀），不會修改任
 
 ### OpenClaw Mission Control 🦞
 
-A real-time dashboard for monitoring your OpenClaw AI Agent — kanban board, skills, cron jobs, system status, and live logs.
+A real-time, high-tech dashboard for monitoring your OpenClaw AI Agent — featuring kanban boards, skill analysis, cron jobs, and live logs. 💅
 
 ### Quick Start
 
 ```bash
-git clone https://github.com/altoslab/openclaw-dashboard.git
+git clone https://github.com/altoslab447/openclaw-dashboard.git
 cd openclaw-dashboard
 npm install
-npm start
-# Open http://localhost:3456
+npm run dev
+# Open http://localhost:5173
 ```
-
-### Configuration
-
-| Variable | Description | Default |
-|---|---|---|
-| `OPENCLAW_HOME` | Path to OpenClaw data directory | `~/.openclaw` |
-| `PORT` | Server port | `3456` |
 
 ### Features
 
-- **Agent Identity** — Name, role, wallet, ACP status
-- **Kanban Board** — Parse `KANBAN.md` into 3-column board
-- **Installed Skills** — List all skills with descriptions
-- **Cron Jobs** — Schedule status with error tracking
-- **System Config** — Models, gateway, channels overview
-- **Memory & Plan** — Long-term memory + evolution plan
-- **Live Logs** — WebSocket real-time gateway log streaming
-- **Auto Refresh** — File change detection via chokidar
+- **Agent Identity** — Name, role, wallet, and ACP status
+- **Kanban Board** — Dynamic parsing of `KANBAN.md`
+- **Skill Analysis** — Real-time overview of installed capabilities
+- **Cron Jobs** — Monitor scheduled tasks and system reliability
+- **Live Logs** — Terminal-style WebSocket log streaming
+- **Multilingual** — Native support for Traditional Chinese and English
+- **Modern UI** — Built with React, Tailwind CSS, and Framer Motion
 
-### License
+### Technology Stack
 
-[MIT](LICENSE)
+- **React 18 / Vite**
+- **Tailwind CSS**
+- **Framer Motion** (Smooth transitions & animations)
+- **Lucide Icons**
+- **Express / WebSocket** (Backend data provider)
+
+## 授權
+
+[MIT License](LICENSE) - Altos Lab
