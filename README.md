@@ -1,6 +1,6 @@
-# 🦞 OpenClaw Mission Control (Dashboard)
+# OpenClaw Mission Control (Dashboard)
 
-> 即時監控你的 OpenClaw AI Agent — 任務看板、技能、排程任務、系統狀態一目了然。💅
+> OpenClaw 工作流的監控與營運看板原型：任務、排程、設定與日誌一頁掌握。
 
 <div align="center">
 
@@ -14,12 +14,12 @@
 
 ## 功能特色
 
-- 🤖 **代理人身份** — 顯示你的 Agent 名稱、角色、錢包地址與 ACP 狀態
+- 🧾 **工作區概覽** — 顯示本地設定與基本狀態（唯讀）
 - 📋 **任務看板** — 即時解析 `KANBAN.md`，三欄式看板（進行中 / 規劃中 / 已完成）
 - 🛠 **已安裝技能** — 列出所有 Skills 及描述
 - ⏰ **排程任務** — 從 `cron/jobs.json` 讀取定時任務狀態（正常 / 錯誤 / 已停用）
 - ⚙️ **系統設定** — 模型配置、閘道器、頻道與插件一覽
-- 🧠 **記憶與計畫** — 長期記憶 + 進化計畫時間軸
+- 🧠 **記憶與計畫** — 時間軸與摘要（以本地檔案為準）
 - 📜 **即時日誌** — WebSocket 即時串流 Gateway 日誌，終端機風格顯示
 - 🔄 **多國語言** — 支援繁體中文與英文切換 🌐
 - ✨ **現代 UI** — 採用 React + Tailwind CSS + Framer Motion 打造的高科技感介面
@@ -29,7 +29,7 @@
 ### 前置需求
 
 - [Node.js](https://nodejs.org/) v18+
-- [OpenClaw](https://openclaw.ai/) 已安裝並初始化 (`~/.openclaw/` 目錄存在)
+- OpenClaw 執行環境已安裝並初始化（本機需存在 `~/.openclaw/` 或等效目錄）
 
 ### 安裝與啟動
 
@@ -76,8 +76,8 @@ Dashboard 直接讀取你本地的 OpenClaw 檔案（唯讀）：
 | 檔案 | 用途 |
 |---|---|
 | `KANBAN.md` | 看板任務 |
-| `IDENTITY.md` / `SOUL.md` | Agent 身份與個性 |
-| `MEMORY.md` | 長期記憶 |
+| `IDENTITY.md` / `SOUL.md` | 工作區 metadata（若存在） |
+| `MEMORY.md` | 工作記錄（若存在） |
 | `cron/jobs.json` | 排程任務 |
 | `openclaw.json` | 系統設定 |
 | `logs/gateway.log` | 即時日誌 |
