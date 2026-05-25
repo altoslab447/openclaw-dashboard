@@ -90,7 +90,7 @@ Dashboard 直接讀取你本地的 OpenClaw 檔案（唯讀）：
 
 ### OpenClaw Mission Control 🦞
 
-A real-time, high-tech dashboard for monitoring your OpenClaw AI Agent — featuring kanban boards, skill analysis, cron jobs, and live logs. 💅
+A real-time dashboard prototype for monitoring OpenClaw workflows — featuring kanban boards, cron jobs, and live logs.
 
 ### Quick Start
 
@@ -104,7 +104,7 @@ npm run dev
 
 ### Features
 
-- **Agent Identity** — Name, role, wallet, and ACP status
+- **Workspace Overview** — Local configuration and basic status (read-only)
 - **Kanban Board** — Dynamic parsing of `KANBAN.md`
 - **Skill Analysis** — Real-time overview of installed capabilities
 - **Cron Jobs** — Monitor scheduled tasks and system reliability
